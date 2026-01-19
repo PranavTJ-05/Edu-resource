@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import { 
+import {
   DocumentIcon,
   PlayIcon,
   LinkIcon,
@@ -24,7 +24,6 @@ interface MaterialFormData {
   url: string;
   filename: string;
   description: string;
-  isFree: boolean;
 }
 
 const CourseMaterials = () => {
@@ -39,8 +38,7 @@ const CourseMaterials = () => {
     type: 'document',
     url: '',
     filename: '',
-    description: '',
-    isFree: false
+    description: ''
   });
 
   useEffect(() => {
@@ -61,7 +59,7 @@ const CourseMaterials = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (editingMaterial) {
         await axios.put(`/api/courses/${id}/material/${editingMaterial._id}`, formData);
@@ -70,7 +68,7 @@ const CourseMaterials = () => {
         await axios.post(`/api/courses/${id}/material`, formData);
         toast.success('Material added successfully');
       }
-      
+
       fetchCourse();
       resetForm();
     } catch (error: any) {
@@ -81,7 +79,7 @@ const CourseMaterials = () => {
 
   const handleDelete = async (materialId: string) => {
     if (!window.confirm('Are you sure you want to delete this material?')) return;
-    
+
     try {
       await axios.delete(`/api/courses/${id}/material/${materialId}`);
       toast.success('Material deleted successfully');
@@ -99,8 +97,7 @@ const CourseMaterials = () => {
       type: material.type as any, // Type cast might be needed if backend returns types not in my strict literal set
       url: material.url,
       filename: material.filename || '',
-      description: material.description || '',
-      isFree: material.isFree || false
+      description: material.description || ''
     });
     setShowAddForm(true);
   };
@@ -111,8 +108,7 @@ const CourseMaterials = () => {
       type: 'document',
       url: '',
       filename: '',
-      description: '',
-      isFree: false
+      description: ''
     });
     setEditingMaterial(null);
     setShowAddForm(false);
@@ -133,6 +129,21 @@ const CourseMaterials = () => {
   }
 
   const canEdit = user?.role === 'instructor' && course.instructor._id === user._id || user?.role === 'admin';
+
+  // Aggregate materials
+  const allMaterials = [
+    // Include legacy/root materials if they exist (cast to any to bypass 'never' type if needed)
+    ...((course as any).materials || []),
+    // Include module materials
+    ...(course.modules || []).flatMap(m =>
+      (m.materials || []).map(mat => ({
+        ...mat,
+        moduleTitle: m.title,
+        moduleId: m._id,
+        isModuleMaterial: true
+      }))
+    )
+  ];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -242,19 +253,6 @@ const CourseMaterials = () => {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isFree"
-                checked={formData.isFree}
-                onChange={(e) => setFormData({ ...formData, isFree: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="isFree" className="text-sm font-medium text-gray-700">
-                Make this material free for non-enrolled students
-              </label>
-            </div>
-
             <div className="flex space-x-2">
               <button type="submit" className="btn btn-primary">
                 Update Material
@@ -273,32 +271,27 @@ const CourseMaterials = () => {
 
       {/* Materials List */}
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4">Materials ({course.materials?.length || 0})</h2>
-        
-        {!course.materials?.length ? (
+        <h2 className="text-lg font-semibold mb-4">Materials ({allMaterials.length})</h2>
+
+        {allMaterials.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No materials uploaded yet
           </div>
         ) : (
           <div className="space-y-3">
-            {course.materials.map((material) => {
+            {allMaterials.map((material: any, index: number) => {
               const Icon = getIconForType(material.type);
+              const key = material._id || index; // Fallback key
               return (
-                <div key={material._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="flex items-center space-x-3">
                     <Icon className="h-6 w-6 text-gray-500" />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <h3 className="font-medium text-gray-900">{material.title}</h3>
-                        {material.isFree ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <LockOpenIcon className="h-3 w-3 mr-1" />
-                            Free
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            <LockClosedIcon className="h-3 w-3 mr-1" />
-                            Premium
+                        {material.isModuleMaterial && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                            {material.moduleTitle}
                           </span>
                         )}
                       </div>
@@ -308,7 +301,7 @@ const CourseMaterials = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <a
                       href={material.url}
@@ -318,7 +311,9 @@ const CourseMaterials = () => {
                     >
                       Open
                     </a>
-                    {canEdit && (
+
+                    {/* Only allow edit/delete for direct course materials, or if we implemented module material editing here */}
+                    {canEdit && !material.isModuleMaterial && (
                       <>
                         <button
                           onClick={() => handleEdit(material)}

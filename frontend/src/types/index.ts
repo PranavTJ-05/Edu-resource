@@ -32,7 +32,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'student' | 'instructor';
+  role: 'student' | 'instructor' | 'admin';
   isActive: boolean;
   isApproved: boolean;
   enrollmentDate?: string;
@@ -74,12 +74,22 @@ export interface CourseMaterial {
   description?: string;
   url: string;
   filename?: string;
-  isFree: boolean;
+  // isFree removed
   // Included directly in the interface for simplicity in frontend handling, though backend might not send it.
   file?: File | null; 
 }
 
+export interface Module {
+  _id?: string; // Optional for new modules before save
+  title: string;
+  description: string;
+  duration?: string;
+  markdownContent?: string;
+  materials: CourseMaterial[];
+}
+
 export interface Course {
+  materials: never[];
   _id: string;
   title: string;
   courseCode: string;
@@ -87,14 +97,16 @@ export interface Course {
   description: string;
   credits: number;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
-  fees: number;
+  // fees removed
   currentEnrollment: number;
   maxStudents: number;
   isApproved: boolean;
   enrollmentCount: number; // Keeping this if it was used elsewhere, though currentEnrollment seems preferred
-  materials?: CourseMaterial[];
+  modules?: Module[];
+  // materials?: CourseMaterial[]; // Deprecated
   prerequisites?: string[];
   category?: string;
+  isActive?: boolean;
 }
 
 export interface Pagination {
@@ -141,14 +153,7 @@ export interface Assignment {
   isSubmitted?: boolean;
 }
 
-export interface Grade {
-  points: number;
-  feedback?: string;
-  gradedBy?: User;
-  gradedAt: string;
-  letterGrade?: string;
-  percentage: number;
-}
+
 
 export interface Submission {
   _id: string;
@@ -156,55 +161,13 @@ export interface Submission {
   student: User;
   submissionText?: string;
   attachments?: Attachment[];
-  status: 'submitted' | 'graded' | 'late';
+  status: 'submitted' | 'late';
   submittedAt: string;
-  grade?: Grade;
   isLate: boolean;
   feedback?: string;
 }
 
-export interface AttendanceStudent {
-  student: string | User;
-  status: 'present' | 'absent' | 'late' | 'excused';
-}
 
-export interface AttendanceRecord {
-  _id: string;
-  course: string | Course;
-  date: string;
-  classType: string;
-  topic: string;
-  duration: number;
-  students: AttendanceStudent[];
-  createdBy: string | User;
-  createdAt: string;
-  updatedAt: string;
-  // Optional method signature if we ever hydrate this, but for JSON it is not there.
-  getAttendanceStats?: () => {
-    total: number;
-    present: number;
-    absent: number;
-    late: number;
-    excused: number;
-  };
-}
-
-export interface StudentAttendanceRecord {
-  date: string;
-  status: 'present' | 'absent' | 'late' | 'excused';
-  classType: string;
-  topic?: string;
-}
-
-export interface StudentCourseAttendance {
-  course: Course;
-  attendance: {
-    totalClasses: number;
-    attendedClasses: number;
-    attendancePercentage: number;
-  };
-  records: StudentAttendanceRecord[];
-}
 
 export interface Enrollment {
   _id: string;
@@ -212,26 +175,10 @@ export interface Enrollment {
   course: Course;
   enrollmentDate: string;
   status: 'active' | 'enrolled' | 'completed' | 'dropped' | 'suspended';
-  attendance?: {
-    attendancePercentage: number;
-    totalClasses?: number;
-    attendedClasses?: number;
-  };
-  finalGrade?: {
-    percentage: number;
-    letterGrade: string;
-  };
+
 }
 
-export interface CoursePerformance {
-  courseId: string;
-  courseTitle: string;
-  completionRate: number;
-  submissionRate: number;
-  averageGrade: number;
-  averageSatisfaction: number;
-  totalStudents?: number;
-}
+
 
 export interface DashboardData {
   totalCourses: number;
@@ -241,20 +188,11 @@ export interface DashboardData {
   recentEnrollments: Enrollment[];
 }
 
-export interface StudentGradeReport {
-  _id?: string;
-  course?: Course;
-  letterGrade?: string;
-  percentage?: number;
-  gpa?: number;
-  isFinalized?: boolean;
-  student?: User;
-}
+
 
 export interface StudentDashboardData {
-  enrollments: (Enrollment & { attendance?: { attendancePercentage: number } })[];
+  enrollments: Enrollment[];
   assignments: Assignment[];
-  grades: StudentGradeReport[];
 }
 
 export interface CourseStat extends Course {

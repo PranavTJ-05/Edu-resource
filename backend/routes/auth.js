@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { auth, authorize } = require('../middleware/auth');
-const { auth, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -43,7 +42,7 @@ router.post('/register', [
 
     // Strict Instructor Check
     if (role === 'instructor') {
-      if (firstName !== 'Teacher' || email !== 'chendur@gmail.com' || password !== 'password12341234') {
+      if (firstName !== 'Teacher' || email !== 'chendur@gmail.com' || password !== '12341234') {
         return res.status(403).json({ message: 'Unauthorized to register as instructor.' });
       }
     }

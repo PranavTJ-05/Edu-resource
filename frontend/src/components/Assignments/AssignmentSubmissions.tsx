@@ -5,92 +5,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import { formatDateTime } from '../../utils/dateUtils';
 import type { Submission, Assignment } from '../../types';
 
-interface GradeFormProps {
-  submissionId: string;
-  assignmentTotalPoints: number;
-  onGraded: () => void;
-}
 
-// Grading form component
-function GradeForm({ submissionId, assignmentTotalPoints, onGraded }: GradeFormProps) {
-  const [points, setPoints] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      await axios.put(`/api/submissions/${submissionId}/grade`, {
-        points: Number(points),
-        feedback
-      });
-      
-      // Reset form
-      setPoints('');
-      setFeedback('');
-      
-      if (onGraded) onGraded();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to grade submission');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="mt-4 p-4 bg-gray-100 rounded">
-      <div className="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-3 md:space-y-0">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
-          <div className="flex items-center space-x-2">
-            <input
-              type="number"
-              min="0"
-              max={assignmentTotalPoints || 100}
-              step="0.1"
-              value={points}
-              onChange={e => setPoints(e.target.value)}
-              required
-              className="input w-24"
-              placeholder="0"
-            />
-            <span className="text-sm text-gray-500">/ {assignmentTotalPoints || 100}</span>
-          </div>
-        </div>
-        
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Feedback (Optional)</label>
-          <textarea
-            value={feedback}
-            onChange={e => setFeedback(e.target.value)}
-            className="input w-full resize-none"
-            placeholder="Enter feedback for the student..."
-            rows={2}
-            maxLength={1000}
-          />
-        </div>
-        
-        <button 
-          type="submit" 
-          className="btn btn-primary whitespace-nowrap" 
-          disabled={loading || !points}
-        >
-          {loading ? 'Grading...' : 'Submit Grade'}
-        </button>
-      </div>
-      
-      {error && (
-        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
-          {error}
-        </div>
-      )}
-    </form>
-  );
-}
 
 interface SubmissionsData {
   assignment: Assignment;
@@ -128,8 +43,7 @@ const AssignmentSubmissions = () => {
     switch (status) {
       case 'submitted':
         return `${baseClasses} bg-blue-100 text-blue-800`;
-      case 'graded':
-        return `${baseClasses} bg-green-100 text-green-800`;
+
       case 'late':
         return `${baseClasses} bg-red-100 text-red-800`;
       default:
@@ -137,12 +51,7 @@ const AssignmentSubmissions = () => {
     }
   };
 
-  const getGradeColor = (percentage: number) => {
-    if (percentage >= 90) return 'text-green-600';
-    if (percentage >= 80) return 'text-blue-600';
-    if (percentage >= 70) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+
 
   if (loading) return <LoadingSpinner />;
   
@@ -193,9 +102,7 @@ const AssignmentSubmissions = () => {
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between text-sm text-gray-600">
             <span>Total Submissions: <span className="font-medium text-gray-900">{totalSubmissions}</span></span>
-            <span>Graded: <span className="font-medium text-gray-900">
-              {submissions?.filter(s => s.status === 'graded').length || 0}
-            </span></span>
+
             <span>Pending: <span className="font-medium text-gray-900">
               {submissions?.filter(s => s.status === 'submitted').length || 0}
             </span></span>
@@ -250,17 +157,7 @@ const AssignmentSubmissions = () => {
                     </div>
                   </div>
                   
-                  {submission.grade && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Grade:</span>
-                      <div className={`text-sm font-medium ${getGradeColor(submission.grade.percentage)}`}>
-                        {submission.grade.points} / {assignment?.totalPoints} ({submission.grade.letterGrade})
-                        <span className="text-gray-500 ml-1">
-                          - {submission.grade.percentage?.toFixed(1) || 0}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
+
                 </div>
 
                 {/* Submission Content */}
@@ -310,29 +207,7 @@ const AssignmentSubmissions = () => {
                   </div>
                 )}
 
-                {/* Grading Section */}
-                {submission.grade ? (
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>
-                        Graded on: {formatDateTime(submission.grade.gradedAt)}
-                      </span>
-                      {submission.grade.gradedBy && (
-                        <span>
-                          Graded by: {submission.grade.gradedBy.firstName} {submission.grade.gradedBy.lastName}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="pt-4 border-t border-gray-200">
-                    <GradeForm 
-                      submissionId={submission._id} 
-                      assignmentTotalPoints={assignment?.totalPoints || 100} 
-                      onGraded={fetchSubmissions} 
-                    />
-                  </div>
-                )}
+
               </div>
             </div>
           ))}

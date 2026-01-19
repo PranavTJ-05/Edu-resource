@@ -268,19 +268,9 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
             <div className="flex items-center space-x-2">
               <PreviewIcon className="h-5 w-5 text-gray-500" />
               <span className="font-medium">{formData.title || 'Material Title'}</span>
-              {formData.isFree ? (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Free
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  <LockClosedIcon className="h-3 w-3 mr-1" />
-                  Premium
-                </span>
-              )}
-            </div>
             <p className="text-sm text-gray-600 mt-1 capitalize">{formData.type}</p>
           </div>
+        </div>
         </div>
 
         {/* Actions */}

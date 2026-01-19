@@ -1,20 +1,19 @@
 import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { Dialog, Transition } from '@headlessui/react';
 import { 
   XMarkIcon,
   HomeIcon,
   BookOpenIcon,
   DocumentTextIcon,
-  CalendarIcon,
-  ChartBarIcon,
   ChatBubbleLeftIcon,
   UserGroupIcon,
   AcademicCapIcon,
   PlusIcon,
-  CloudArrowUpIcon,
-  DocumentCheckIcon
+  SunIcon,
+  MoonIcon
 } from '@heroicons/react/24/outline';
 
 interface NavigationItem {
@@ -31,6 +30,7 @@ interface SidebarProps {
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
 
   const getNavigationItems = (): NavigationItem[] => {
@@ -45,8 +45,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         ...commonItems,
         { name: 'My Courses', href: '/my-courses', icon: AcademicCapIcon },
         { name: 'Assignments', href: '/assignments', icon: DocumentTextIcon },
-        { name: 'Grades', href: '/grades', icon: ChartBarIcon },
-        { name: 'Attendance', href: '/attendance', icon: CalendarIcon },
+
       ];
     }
 
@@ -55,8 +54,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         ...commonItems,
         { name: 'Create Course', href: '/create-course', icon: PlusIcon },
         { name: 'Assignments', href: '/assignments', icon: DocumentTextIcon },
-        { name: 'Attendance', href: '/attendance', icon: CalendarIcon },
-        { name: 'Grades', href: '/grades', icon: ChartBarIcon },
+
         { name: 'User Management', href: '/users', icon: UserGroupIcon },
       ];
     }
@@ -68,7 +66,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      <div className="flex items-center h-16 flex-shrink-0 px-4 bg-primary-600">
+      <div className="flex items-center h-16 flex-shrink-0 px-4 bg-primary-600 dark:bg-gray-800">
         <BookOpenIcon className="h-8 w-8 text-white" />
         <span className="ml-2 text-xl font-semibold text-white">EduManage</span>
       </div>
@@ -100,19 +98,32 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           })}
         </nav>
         
-        <div className="flex-shrink-0 p-4 border-t border-gray-200">
-          <div className="flex items-center">
-            <div className="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-600">
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
-              </span>
+        <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="h-8 w-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-200">
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </span>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.role}</p>
+              </div>
             </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-700">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
-            </div>
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              aria-label="Toggle Dark Mode"
+            >
+              {theme === 'light' ? (
+                <MoonIcon className="h-5 w-5" />
+              ) : (
+                <SunIcon className="h-5 w-5" />
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -146,7 +157,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              <Dialog.Panel className="relative flex-1 flex flex-col max-w-xs w-full bg-white">
+              <Dialog.Panel className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-gray-800">
                 <Transition.Child
                   as={Fragment}
                   enter="ease-in-out duration-300"
@@ -175,7 +186,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
+        <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <SidebarContent />
         </div>
       </div>

@@ -6,12 +6,12 @@ import {
   BookOpenIcon,
   UserIcon,
   CalendarIcon,
-  CurrencyDollarIcon,
   ClockIcon,
   DocumentIcon,
   PencilIcon,
   TrashIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import CourseContentViewer from './CourseContentViewer';
@@ -118,7 +118,7 @@ const CourseDetail = () => {
     );
   }
 
-  const canEdit = user?.role === 'instructor' && course.instructor._id === user._id; // Removed admin from edit permissions
+  const canEdit = user?.role === 'instructor' && course.instructor?._id === user._id; // Removed admin from edit permissions
   const canApprove = user?.role === 'admin'; // Separate permission for approval
 
   return (
@@ -143,17 +143,12 @@ const CourseDetail = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="flex items-center text-gray-600">
                 <UserIcon className="h-5 w-5 mr-3" />
-                <span>Instructor: {course.instructor.firstName} {course.instructor.lastName}</span>
+                <span>Instructor: {course.instructor ? `${course.instructor.firstName} ${course.instructor.lastName}` : 'Unknown'}</span>
               </div>
 
               <div className="flex items-center text-gray-600">
                 <CalendarIcon className="h-5 w-5 mr-3" />
                 <span>{course.credits} Credits • {course.level}</span>
-              </div>
-
-              <div className="flex items-center text-gray-600">
-                <CurrencyDollarIcon className="h-5 w-5 mr-3" />
-                <span>${course.fees}</span>
               </div>
 
               <div className="flex items-center text-gray-600">
@@ -174,13 +169,22 @@ const CourseDetail = () => {
                   <PencilIcon className="h-5 w-5 mr-2" />
                   Edit Course
                 </button>
-                <button
-                  onClick={() => navigate(`/courses/${id}/materials`)}
-                  className="btn btn-primary flex items-center justify-center"
-                >
-                  <DocumentIcon className="h-5 w-5 mr-2" />
-                  Manage Materials
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => navigate(`/courses/${id}/add-module`)}
+                    className="btn btn-primary flex items-center justify-center text-sm"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Add Module
+                  </button>
+                  <button
+                    onClick={() => navigate(`/courses/${id}/materials`)}
+                    className="btn btn-secondary flex items-center justify-center text-sm"
+                  >
+                    <DocumentIcon className="h-4 w-4 mr-2" />
+                    Manage Materials
+                  </button>
+                </div>
               </>
             )}
 
@@ -232,6 +236,7 @@ const CourseDetail = () => {
       {/* Course Materials - Now visible to all users */}
       <CourseContentViewer
         materials={course.materials || []}
+        modules={course.modules || []}
         isEnrolled={isEnrolled}
         canEdit={canEdit}
         onEnroll={handleEnroll}

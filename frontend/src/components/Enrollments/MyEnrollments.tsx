@@ -7,7 +7,7 @@ import {
   ChartBarIcon,
   CalendarIcon,
   UserIcon,
-  ExclamationTriangleIcon
+
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import type { Enrollment } from '../../types';
@@ -50,14 +50,7 @@ const MyEnrollments = () => {
     }
   };
 
-  const getGradeColor = (finalGrade?: { percentage: number; letterGrade: string }) => {
-    if (!finalGrade?.percentage) return 'text-gray-600';
-    const percentage = finalGrade.percentage;
-    if (percentage >= 90) return 'text-green-600';
-    if (percentage >= 80) return 'text-blue-600';
-    if (percentage >= 70) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+
 
   if (loading) {
     return <LoadingSpinner />;
@@ -109,19 +102,7 @@ const MyEnrollments = () => {
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-8 w-8 text-yellow-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Avg Attendance</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {enrollments.length > 0 
-                  ? Math.round(enrollments.reduce((sum, e) => sum + (e.attendance?.attendancePercentage || 0), 0) / enrollments.length)
-                  : 0}%
-              </p>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {/* Course List */}
@@ -162,45 +143,7 @@ const MyEnrollments = () => {
               </div>
 
               {/* Progress Metrics */}
-              <div className="space-y-3 mb-4">
-                {/* Attendance */}
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Attendance</span>
-                    <span className="font-medium">
-                      {enrollment.attendance?.attendancePercentage.toFixed(1) || '0.0'}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: `${enrollment.attendance?.attendancePercentage || 0}%` }}
-                    ></div>
-                  </div>
-                </div>
 
-                {/* Grade */}
-                {enrollment.finalGrade?.percentage !== undefined && (
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Current Grade</span>
-                      <span className={`font-medium ${getGradeColor(enrollment.finalGrade)}`}>
-                        {enrollment.finalGrade.letterGrade} ({enrollment.finalGrade.percentage}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          enrollment.finalGrade.percentage >= 90 ? 'bg-green-500' :
-                          enrollment.finalGrade.percentage >= 80 ? 'bg-blue-500' :
-                          enrollment.finalGrade.percentage >= 70 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${enrollment.finalGrade.percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {/* Action Buttons */}
               <div className="flex space-x-2">

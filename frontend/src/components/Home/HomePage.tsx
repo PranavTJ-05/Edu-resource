@@ -11,7 +11,6 @@ import {
   StarIcon,
   ArrowRightIcon,
   ShieldCheckIcon,
-  ClockIcon,
   DevicePhoneMobileIcon,
   CloudIcon,
   ChatBubbleLeftRightIcon,
@@ -69,7 +68,7 @@ const HomePage = () => {
     {
       icon: AcademicCapIcon,
       title: 'Assignment System',
-      description: 'Create assignments, collect submissions, and grade with comprehensive rubrics and feedback.',
+      description: 'Create assignments, collect submissions, and provide comprehensive feedback.',
       color: 'text-green-600',
       bg: 'bg-green-100'
     },
@@ -83,16 +82,9 @@ const HomePage = () => {
     {
       icon: ChartBarIcon,
       title: 'Analytics & Reports',
-      description: 'Track performance, attendance, and generate comprehensive reports for insights.',
+      description: 'Track performance and generate comprehensive reports for insights.',
       color: 'text-yellow-600',
       bg: 'bg-yellow-100'
-    },
-    {
-      icon: ClockIcon,
-      title: 'Attendance Tracking',
-      description: 'Real-time attendance monitoring with automated calculations and detailed reports.',
-      color: 'text-red-600',
-      bg: 'bg-red-100'
     },
     {
       icon: ChatBubbleLeftRightIcon,
@@ -111,7 +103,7 @@ const HomePage = () => {
     {
       icon: BellIcon,
       title: 'Smart Notifications',
-      description: 'Stay updated with real-time notifications for deadlines, grades, and announcements.',
+      description: 'Stay updated with real-time notifications for deadlines and announcements.',
       color: 'text-orange-600',
       bg: 'bg-orange-100'
     }
@@ -119,8 +111,6 @@ const HomePage = () => {
 
   const benefits = [
     'Streamlined course enrollment and management',
-    'Real-time attendance tracking and reporting',
-    'Comprehensive grading and feedback system',
     'Secure document verification for instructors',
     'Interactive messaging and communication tools',
     'Mobile-responsive design for any device',
@@ -138,8 +128,6 @@ const HomePage = () => {
       features: [
         'Course enrollment',
         'Assignment submissions',
-        'Grade tracking',
-        'Attendance monitoring',
         'Direct messaging with instructors',
         'Mobile access'
       ],
@@ -152,8 +140,7 @@ const HomePage = () => {
       description: 'For educators and teachers',
       features: [
         'Create unlimited courses',
-        'Assignment creation & grading',
-        'Attendance management',
+        'Assignment creation',
         'Student analytics',
         'Document verification required',
         'Priority support'
@@ -183,7 +170,7 @@ const HomePage = () => {
       name: 'Dr. Sarah Johnson',
       role: 'Computer Science Professor',
       institution: 'Tech University',
-      content: 'The assignment system and grading tools have streamlined my workflow significantly. Student engagement has improved with the integrated messaging system.',
+      content: 'The assignment system has streamlined my workflow significantly. Student engagement has improved with the integrated messaging system.',
       rating: 5,
       image: '/api/placeholder/64/64'
     },
@@ -191,7 +178,7 @@ const HomePage = () => {
       name: 'Michael Chen',
       role: 'Graduate Student',
       institution: 'Engineering College',
-      content: 'I love how easy it is to track assignments, view grades, and monitor my attendance. Everything I need is in one organized dashboard.',
+      content: 'I love how easy it is to track assignments and deadlines. Everything I need is in one organized dashboard.',
       rating: 5,
       image: '/api/placeholder/64/64'
     },
@@ -280,8 +267,8 @@ const HomePage = () => {
                 <span className="block text-primary-200">For Modern Education</span>
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-primary-100 leading-relaxed">
-                Streamline course creation, student enrollment, assignment management, attendance tracking, 
-                and grading with our comprehensive educational platform.
+                Streamline course creation, student enrollment, and assignment management 
+                with our comprehensive educational platform.
               </p>
               
               {!user && (
@@ -577,10 +564,6 @@ const HomePage = () => {
             {
               question: "How does instructor verification work?",
               answer: "Instructors must upload credential documents during registration. Our admin team reviews and approves instructor accounts to ensure quality education."
-            },
-            {
-              question: "Can I track student attendance?",
-              answer: "Yes! Instructors can mark attendance for each class, and the system automatically calculates attendance percentages and generates reports."
             },
             {
               question: "How secure is student data?",

@@ -39,11 +39,7 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  fees: {
-    type: Number,
-    required: [true, 'Course fees are required'],
-    min: [0, 'Fees cannot be negative']
-  },
+  // fees field removed
   category: {
     type: String,
     required: [true, 'Category is required'],
@@ -55,24 +51,28 @@ const courseSchema = new mongoose.Schema({
     enum: ['Beginner', 'Intermediate', 'Advanced']
   },
   prerequisites: [String],
-  materials: [{
-    title: String,
-    type: {
-      type: String,
-      enum: ['pdf', 'video', 'link', 'document', 'note']
-    },
-    url: String,
-    filename: String,
+  modules: [{
+    title: { type: String, required: true },
     description: String,
-    isFree: {
-      type: Boolean,
-      default: false
-    },
-    uploadDate: {
-      type: Date,
-      default: Date.now
-    }
+    duration: String, // e.g., "2 hours"
+    markdownContent: String, // The content from the Markdown Manager
+    materials: [{
+      title: String,
+      type: {
+        type: String,
+        enum: ['pdf', 'video', 'link', 'document', 'note']
+      },
+      url: String,
+      filename: String,
+      description: String,
+      uploadDate: {
+        type: Date,
+        default: Date.now
+      }
+    }]
   }],
+  // materials: [] // Deprecated - replaced by modules. Keeping strictly for migration/reference if needed? No, let's just comment it out or remove it to enforce new structure.
+  // We will assume fresh start or ignoring old materials field for now as per plan.
   isActive: {
     type: Boolean,
     default: true

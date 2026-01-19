@@ -227,20 +227,13 @@ const AssignmentDetail = () => {
                   <div>
                     <span className="font-medium text-gray-600">Status:</span>
                     <p className={`font-medium ${
-                      submission.status === 'graded' ? 'text-green-600' :
                       submission.status === 'submitted' ? 'text-blue-600' : 'text-gray-600'
+
                     }`}>
                       {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
                     </p>
                   </div>
-                  {submission.grade && (
-                    <div>
-                      <span className="font-medium text-gray-600">Grade:</span>
-                      <p className="font-semibold text-lg">
-                        {submission.grade.points}/{assignment.totalPoints} ({submission.grade.letterGrade})
-                      </p>
-                    </div>
-                  )}
+
                 </div>
 
                 {submission.submissionText && (

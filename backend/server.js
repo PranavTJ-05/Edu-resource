@@ -14,8 +14,7 @@ const courseRoutes = require('./routes/courses');
 const enrollmentRoutes = require('./routes/enrollments');
 const assignmentRoutes = require('./routes/assignments');
 const submissionRoutes = require('./routes/submissions');
-const attendanceRoutes = require('./routes/attendance');
-const gradeRoutes = require('./routes/grades');
+
 const messageRoutes = require('./routes/messages');
 const notificationRoutes = require('./routes/notifications');
 const analyticsRoutes = require('./routes/analytics');
@@ -27,7 +26,6 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: [
-    'http://localhost:3000',
     'http://localhost:5173',
     'http://localhost:5174',
     process.env.CLIENT_URL
@@ -47,8 +45,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/grades', gradeRoutes);
+
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);

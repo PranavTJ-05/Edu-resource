@@ -12,7 +12,7 @@ interface DashboardData {
 }
 
 const AdminDashboard = () => {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardData] = useState<DashboardData | null>(null);
   const [pendingCourses, setPendingCourses] = useState<Course[]>([]);
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
 

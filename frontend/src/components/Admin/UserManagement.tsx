@@ -3,7 +3,6 @@ import axios from 'axios';
 import { 
   UserGroupIcon,
   CheckCircleIcon,
-  XCircleIcon,
   FunnelIcon
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';

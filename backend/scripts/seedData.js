@@ -14,47 +14,62 @@ mongoose.connect(process.env.MONGODB_URI, {
   useUnifiedTopology: true,
 });
 
-const createAdminUser = async () => {
+const createInstructorUser = async () => {
   try {
-    // Check if admin user already exists
-    const existingAdmin = await User.findOne({ role: 'admin' });
-    if (existingAdmin) {
-      console.log('Admin user already exists');
-      process.exit(0);
+    // Check if instructor user already exists
+    const instructorEmail = 'chendur@gmail.com';
+    const instructorPassword = '12341234';
+    
+    let user = await User.findOne({ email: instructorEmail });
+    
+    if (user) {
+      console.log('Instructor user already exists. Updating...');
+      user.firstName = 'Teacher';
+      user.role = 'instructor';
+      user.password = instructorPassword; // Will be hashed by pre-save middleware
+      user.isApproved = true;
+      user.isActive = true;
+      
+      // Ensure instructor profile exists
+      if (!user.instructorProfile) {
+        user.instructorProfile = {
+          qualification: 'Master of Education',
+          experience: 10,
+          specialization: ['Web Development', 'Physics'],
+          bio: 'Lead Instructor'
+        };
+      }
+    } else {
+      console.log('Creating new instructor user...');
+      user = new User({
+        firstName: 'Teacher',
+        lastName: 'User',
+        email: instructorEmail,
+        password: instructorPassword,
+        role: 'instructor',
+        isApproved: true,
+        isActive: true,
+        instructorProfile: {
+          qualification: 'Master of Education',
+          experience: 10,
+          specialization: ['Web Development', 'Physics'],
+          bio: 'Lead Instructor'
+        }
+      });
     }
 
-    // Create admin user from environment variables
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin';
-    const adminLastName = process.env.ADMIN_LAST_NAME || 'User';
+    await user.save();
 
-    if (!adminEmail || !adminPassword) {
-      console.error('Please set ADMIN_EMAIL and ADMIN_PASSWORD in your environment variables');
-      process.exit(1);
-    }
-
-    const adminUser = new User({
-      firstName: adminFirstName,
-      lastName: adminLastName,
-      email: adminEmail,
-      password: adminPassword,
-      role: 'admin',
-      isApproved: true,
-      isActive: true
-    });
-
-    await adminUser.save();
-
-    console.log('Admin user created successfully!');
-    console.log(`Email: ${adminEmail}`);
-    console.log('Admin can now log in and manage the system');
+    console.log('Instructor user seeded successfully!');
+    console.log(`Email: ${instructorEmail}`);
+    console.log(`Password: ${instructorPassword}`);
+    console.log('You can now log in as the instructor.');
 
     process.exit(0);
   } catch (error) {
-    console.error('Error creating admin user:', error);
+    console.error('Error seeding instructor user:', error);
     process.exit(1);
   }
 };
 
-createAdminUser();
+createInstructorUser();

@@ -1,5 +1,6 @@
 const express = require('express');
 const { body, validationResult, query } = require('express-validator');
+const jwt = require('jsonwebtoken'); // Import jwt
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const { auth, authorize, checkApproval } = require('../middleware/auth');
@@ -29,8 +30,53 @@ router.get('/', [
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Build filter object - Remove isApproved requirement for now
-    let filter = { isActive: true };
+    // Build filter object
+    let filter = {};
+    
+    // Check for auth token to allow instructors to see "My Courses" even if inactive
+    if (req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.replace('Bearer ', '');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // If user is authenticated, we adjust the filter logic
+        // We want: (isActive: true) OR (instructor: userId)
+        if (req.query.search || req.query.category || req.query.level) {
+           // If other filters are present, we need to respect them AND the visibility rule
+           // Base rule: (isActive: true OR instructor: me)
+           // But how to combine with other filters?
+           // Actually, simpler: Default is { isActive: true }
+           // If instructor, we change to { $or: [{ isActive: true }, { instructor: userId }] }
+           // But we still need to apply search/category/level filters.
+           
+           filter.$or = [
+             { isActive: true },
+             { instructor: decoded.userId }
+           ];
+        } else {
+           // No other filters? Same logic.
+           filter.$or = [
+             { isActive: true },
+             { instructor: decoded.userId }
+           ];
+        }
+      } catch (err) {
+        // Invalid token, treat as public
+        filter.isActive = true;
+      }
+    } else {
+      filter.isActive = true;
+    }
+    
+    // If we have specific filters from query, we must ensure they are applied effectively
+    // Note: If using $or for visibility, we must combine it with other filters via $and if necessary.
+    // MongoDB structure: { $and: [ { VISIBILITY_RULE }, { FILTER_RULE } ] }
+    
+    // Let's refine the filter construction:
+    const visibilityFilter = filter.$or ? { $or: filter.$or } : { isActive: true };
+    
+    // Reset filter to build it properly
+    filter = { ...visibilityFilter };
     
     if (req.query.category) {
       filter.category = req.query.category;
@@ -41,11 +87,54 @@ router.get('/', [
     }
     
     if (req.query.search) {
-      filter.$or = [
-        { title: { $regex: req.query.search, $options: 'i' } },
-        { description: { $regex: req.query.search, $options: 'i' } },
-        { courseCode: { $regex: req.query.search, $options: 'i' } }
-      ];
+      // If search exists, we need to combine with visibility
+      const searchFilter = {
+        $or: [
+          { title: { $regex: req.query.search, $options: 'i' } },
+          { description: { $regex: req.query.search, $options: 'i' } },
+          { courseCode: { $regex: req.query.search, $options: 'i' } }
+        ]
+      };
+      
+      // Merge search filter with existing filter
+      // If filter already has $or (from visibility), we need to use $and
+      if (filter.$or) {
+        filter = {
+          $and: [
+             { $or: filter.$or }, // Visibility: Active OR Mine
+             searchFilter         // AND Search match
+          ]
+        };
+        // Re-apply category/level if they were added (since we reset filter)
+        // Wait, the previous lines 35-41 added category/level to the 'filter' object directly.
+        // If we switch to $and root, we need to put category/level inside $and or at root level (if not conflicting).
+        // Mixing top-level fields with $and is fine.
+        
+        if (req.query.category) filter.category = req.query.category;
+        if (req.query.level) filter.level = req.query.level;
+        
+      } else {
+        // Public (isActive: true)
+        // searchFilter has $or, so we use $and to combine: (Active) AND (SearchMatch)
+        // Actually, lines 44-48 below handled search by adding $or.
+        // But if we already have isActive: true, adding $or at root would mean (Active AND ...) OR (Search...) 
+        // - NO, that's not how it works.
+        // If we act strictly:
+        // We have `filter.isActive = true`.
+        // We add `filter.$or = [search...]`.
+        // Result: `isActive: true` AND (`title match` OR `desc match`...). This is CORRECT.
+        
+        // So for public users, existing logic was:
+        // filter = { isActive: true }
+        // if search: filter.$or = [search_criteria]
+        // This works: Active AND (Search Criteria).
+        
+        // For instructors:
+        // filter = { $or: [{isActive: true}, {instructor: me}] }
+        // if search: filter.$or = [search_criteria] -> THIS OVERWRITES the visibility $or!
+        // We need $and.
+        
+      }
     }
 
     // Get courses with pagination
@@ -57,8 +146,6 @@ router.get('/', [
       .limit(limit);
 
     const total = await Course.countDocuments(filter);
-
-    console.log(`Found ${courses.length} courses out of ${total} total`); // Debug log
 
     res.json({
       courses,
@@ -73,6 +160,74 @@ router.get('/', [
   } catch (error) {
     console.error('Get courses error:', error);
     res.status(500).json({ message: 'Server error while fetching courses' });
+  }
+});
+
+// @route   PUT /api/courses/:id
+// @desc    Update course details
+// @access  Private (Instructor only)
+router.put('/:id', [auth, authorize('instructor')], async (req, res) => {
+  try {
+    const { title, description, category, level, credits, maxStudents, fees, isActive, prerequisites, materials } = req.body;
+    
+    let course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Check ownership
+    if (course.instructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this course' });
+    }
+
+    const updates = {};
+    if (title) updates.title = title;
+    if (description) updates.description = description;
+    if (category) updates.category = category;
+    if (level) updates.level = level;
+    if (credits) updates.credits = credits;
+    if (maxStudents) updates.maxStudents = maxStudents;
+    if (fees !== undefined) updates.fees = fees;
+    if (isActive !== undefined) updates.isActive = isActive;
+    if (prerequisites) updates.prerequisites = prerequisites;
+    if (materials) updates.materials = materials;
+
+    course = await Course.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    res.json(course);
+  } catch (error) {
+    console.error('Update course error:', error);
+    res.status(500).json({ message: 'Server error while updating course' });
+  }
+});
+
+// @route   DELETE /api/courses/:id
+// @desc    Delete a course
+// @access  Private (Instructor only)
+router.delete('/:id', [auth, authorize('instructor')], async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Check ownership
+    if (course.instructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this course' });
+    }
+
+    // Optional: Check if course has enrollments before deleting?
+    // For now, simple delete
+    await course.deleteOne();
+
+    res.json({ message: 'Course removed' });
+  } catch (error) {
+    console.error('Delete course error:', error);
+    res.status(500).json({ message: 'Server error while deleting course' });
   }
 });
 
@@ -110,7 +265,7 @@ router.post('/', [
   body('courseCode').trim().notEmpty().withMessage('Course code is required'),
   body('credits').isInt({ min: 1, max: 10 }).withMessage('Credits must be between 1 and 10'),
   body('maxStudents').isInt({ min: 1 }).withMessage('Maximum students must be at least 1'),
-  body('fees').isFloat({ min: 0 }).withMessage('Fees must be a positive number'),
+  // fees validation removed
   body('category').notEmpty().withMessage('Category is required'),
   body('level').isIn(['Beginner', 'Intermediate', 'Advanced']).withMessage('Invalid level')
   // Removed duration validation - now optional
@@ -167,8 +322,7 @@ router.get('/instructor/:instructorId', auth, async (req, res) => {
     }
 
     const courses = await Course.find({ 
-      instructor: req.params.instructorId,
-      isActive: true 
+      instructor: req.params.instructorId
     })
     .populate('instructor', 'firstName lastName email')
     .sort({ createdAt: -1 });
@@ -202,7 +356,7 @@ router.post('/:id/material', [
     }
 
     const { id } = req.params;
-    const { title, type, url, filename, description, isFree = false } = req.body;
+    const { title, type, url, filename, description } = req.body;
 
     // Find the course by ID
     let course = await Course.findById(id);
@@ -222,7 +376,8 @@ router.post('/:id/material', [
       url,
       filename,
       description,
-      isFree,
+      description,
+      // isFree removed
       uploadDate: new Date()
     };
 
@@ -331,162 +486,99 @@ router.delete('/:id/material/:materialId', [auth, authorize('instructor')], asyn
   }
 });
 
-
-
-// @route   GET /api/courses/:id/performance
-// @desc    Get course performance metrics
-// @access  Private (Instructor, Admin)
-router.get('/:id/performance', [auth, authorize('instructor')], async (req, res) => {
+// @route   POST /api/courses/:id/modules
+// @desc    Add a module to a course
+// @access  Private (Instructor only)
+router.post('/:id/modules', [
+  auth,
+  authorize('instructor'),
+  body('title').notEmpty().withMessage('Module title is required')
+], async (req, res) => {
   try {
-    const courseId = req.params.id;
-    const Assignment = require('../models/Assignment');
-    const Submission = require('../models/Submission');
-    const Grade = require('../models/Grade');
-    
-    // Verify course exists and user has access
-    const course = await Course.findById(courseId);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const course = await Course.findById(req.params.id);
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
-    
-    // Check if user is instructor of this course or admin
-    if (course.instructor.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Access denied' });
+
+    if (course.instructor.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
 
-    // Get all enrollments for this course
-    const enrollments = await Enrollment.find({ 
-      course: courseId, 
-      status: 'enrolled' 
-    }).populate('student', 'firstName lastName');
-
-    const totalStudents = enrollments.length;
-    
-    // Get all assignments for this course
-    const assignments = await Assignment.find({ 
-      course: courseId, 
-      isPublished: true 
-    });
-    
-    const totalAssignments = assignments.length;
-
-    // Get all submissions for this course
-    const submissions = await Submission.find({
-      assignment: { $in: assignments.map(a => a._id) }
-    }).populate([
-      { path: 'assignment', select: 'title totalPoints' },
-      { path: 'student', select: 'firstName lastName' }
-    ]);
-
-    // Get all grades for this course
-    const grades = await Grade.find({ course: courseId });
-
-    // Calculate completion rate (students who completed at least 80% of assignments)
-    let completionRate = 0;
-    if (totalStudents > 0 && totalAssignments > 0) {
-      const studentCompletions = {};
-      
-      // Count submissions per student
-      submissions.forEach(submission => {
-        const studentId = submission.student._id.toString();
-        if (!studentCompletions[studentId]) {
-          studentCompletions[studentId] = 0;
-        }
-        studentCompletions[studentId]++;
-      });
-      
-      // Count students who completed at least 80% of assignments
-      const studentsWithGoodCompletion = Object.values(studentCompletions)
-        .filter(count => count >= (totalAssignments * 0.8)).length;
-      
-      completionRate = (studentsWithGoodCompletion / totalStudents) * 100;
-    }
-
-    // Calculate submission rate (percentage of assignments submitted vs total possible)
-    let submissionRate = 0;
-    if (totalStudents > 0 && totalAssignments > 0) {
-      const totalPossibleSubmissions = totalStudents * totalAssignments;
-      submissionRate = (submissions.length / totalPossibleSubmissions) * 100;
-    }
-
-    // Calculate average grade (student satisfaction proxy)
-    let averageGrade = 0;
-    let averageSatisfaction = 0;
-    if (grades.length > 0) {
-      const totalPercentage = grades.reduce((sum, grade) => sum + (grade.percentage || 0), 0);
-      averageGrade = totalPercentage / grades.length;
-      
-      // Convert grade to satisfaction score (70-100% maps to 3.0-5.0 satisfaction)
-      if (averageGrade >= 70) {
-        averageSatisfaction = 3.0 + ((averageGrade - 70) / 30) * 2.0;
-      } else {
-        averageSatisfaction = (averageGrade / 70) * 3.0;
-      }
-      averageSatisfaction = Math.min(5.0, Math.max(1.0, averageSatisfaction));
-    }
-
-    // Calculate assignment statistics
-    const assignmentStats = assignments.map(assignment => {
-      const assignmentSubmissions = submissions.filter(s => 
-        s.assignment._id.toString() === assignment._id.toString()
-      );
-      
-      return {
-        assignmentId: assignment._id,
-        title: assignment.title,
-        totalSubmissions: assignmentSubmissions.length,
-        submissionRate: totalStudents > 0 ? (assignmentSubmissions.length / totalStudents) * 100 : 0,
-        averageGrade: assignmentSubmissions.length > 0 
-          ? assignmentSubmissions.reduce((sum, s) => sum + (s.grade?.percentage || 0), 0) / assignmentSubmissions.length
-          : 0
-      };
-    });
-
-    // Recent activity (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const recentSubmissions = submissions.filter(s => 
-      new Date(s.submittedAt) >= sevenDaysAgo
-    ).length;
-
-    const performanceData = {
-      courseId,
-      courseTitle: course.title,
-      totalStudents,
-      totalAssignments,
-      totalSubmissions: submissions.length,
-      
-      // Key metrics
-      completionRate: Math.round(completionRate * 100) / 100,
-      submissionRate: Math.round(submissionRate * 100) / 100,
-      averageGrade: Math.round(averageGrade * 100) / 100,
-      averageSatisfaction: Math.round(averageSatisfaction * 100) / 100,
-      
-      // Detailed stats
-      assignmentStats,
-      recentActivity: {
-        recentSubmissions,
-        newEnrollments: enrollments.filter(e => 
-          new Date(e.enrollmentDate) >= sevenDaysAgo
-        ).length
-      },
-      
-      // Grade distribution
-      gradeDistribution: {
-        'A': grades.filter(g => g.letterGrade && g.letterGrade.startsWith('A')).length,
-        'B': grades.filter(g => g.letterGrade && g.letterGrade.startsWith('B')).length,
-        'C': grades.filter(g => g.letterGrade && g.letterGrade.startsWith('C')).length,
-        'D': grades.filter(g => g.letterGrade && g.letterGrade.startsWith('D')).length,
-        'F': grades.filter(g => g.letterGrade === 'F').length
-      }
+    const newModule = {
+      title: req.body.title,
+      description: req.body.description,
+      duration: req.body.duration,
+      markdownContent: req.body.markdownContent,
+      materials: req.body.materials || [] // Array of { title, type, url, ... }
     };
 
-    res.json(performanceData);
+    course.modules.push(newModule);
+    await course.save();
+
+    res.json(course.modules[course.modules.length - 1]);
   } catch (error) {
-    console.error('Get course performance error:', error);
-    res.status(500).json({ message: 'Server error while fetching course performance' });
+    console.error('Add module error:', error);
+    res.status(500).json({ message: 'Server error adding module' });
   }
 });
+
+// @route   PUT /api/courses/:id/modules/:moduleId
+// @desc    Update a module
+// @access  Private (Instructor only)
+router.put('/:id/modules/:moduleId', [auth, authorize('instructor')], async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    if (course.instructor.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    const module = course.modules.id(req.params.moduleId);
+    if (!module) return res.status(404).json({ message: 'Module not found' });
+
+    if (req.body.title) module.title = req.body.title;
+    if (req.body.description) module.description = req.body.description;
+    if (req.body.duration) module.duration = req.body.duration;
+    if (req.body.markdownContent) module.markdownContent = req.body.markdownContent;
+    if (req.body.materials) module.materials = req.body.materials;
+
+    await course.save();
+    res.json(module);
+  } catch (error) {
+    console.error('Update module error:', error);
+    res.status(500).json({ message: 'Server error updating module' });
+  }
+});
+
+// @route   DELETE /api/courses/:id/modules/:moduleId
+// @desc    Delete a module
+// @access  Private (Instructor only)
+router.delete('/:id/modules/:moduleId', [auth, authorize('instructor')], async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    if (course.instructor.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    course.modules.pull(req.params.moduleId);
+    await course.save();
+    res.json({ message: 'Module removed' });
+  } catch (error) {
+    console.error('Delete module error:', error);
+    res.status(500).json({ message: 'Server error deleting module' });
+  }
+});
+
+
+
+
 
 module.exports = router;
