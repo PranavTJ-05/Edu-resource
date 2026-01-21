@@ -12,6 +12,7 @@ interface RegisterFormData {
   confirmPassword: string;
   role: 'student' | 'instructor';
   phone: string;
+  registrationNumber: string;
   instructorProfile: {
     qualification: string;
     experience: string;
@@ -31,6 +32,7 @@ const Register = () => {
     confirmPassword: '',
     role: 'student',
     phone: '',
+    registrationNumber: '',
     instructorProfile: {
       qualification: '',
       experience: '',
@@ -44,13 +46,13 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'role') {
       setShowInstructorFields(value === 'instructor');
       setFormData({
@@ -72,7 +74,7 @@ const Register = () => {
         [name]: value as any
       }));
     }
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
@@ -81,29 +83,37 @@ const Register = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+
+    if (!formData.email.endsWith('@gmail.com')) {
+      newErrors.email = 'Email must end with @gmail.com';
     }
-    
-    if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+
+    if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
+      newErrors.phone = 'Phone number must be exactly 10 digits';
     }
-    
+
+    if (formData.role === 'student') {
+      if (!formData.registrationNumber) {
+        newErrors.registrationNumber = 'Registration Number is required';
+      } else if (!/^\d{2}[a-zA-Z]{3}\d{4}$/.test(formData.registrationNumber)) {
+        newErrors.registrationNumber = 'Invalid format. Expected: 11aaa1111 (2 digits, 3 letters, 4 digits)';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    
+
     const { confirmPassword, ...registerData } = formData;
     const result = await register(registerData);
-    
+
     if (result.success) {
       if (result.needsDocuments) {
         // Redirect to document upload for instructors
@@ -112,7 +122,7 @@ const Register = () => {
         navigate('/dashboard');
       }
     }
-    
+
     setIsLoading(false);
   };
 
@@ -175,7 +185,27 @@ const Register = () => {
             value={formData.email}
             onChange={handleChange}
           />
+          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
         </div>
+
+        {formData.role === 'student' && (
+          <div>
+            <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
+              Registration Number (e.g., 11aaa1111)
+            </label>
+            <input
+              id="registrationNumber"
+              name="registrationNumber"
+              type="text"
+              required
+              className={`input mt-1 ${errors.registrationNumber ? 'border-red-300' : ''}`}
+              value={formData.registrationNumber}
+              onChange={handleChange}
+              placeholder="11aaa1111"
+            />
+            {errors.registrationNumber && <p className="mt-1 text-sm text-red-600">{errors.registrationNumber}</p>}
+          </div>
+        )}
 
         <div>
           <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
@@ -185,10 +215,11 @@ const Register = () => {
             id="phone"
             name="phone"
             type="tel"
-            className="input mt-1"
+            className={`input mt-1 ${errors.phone ? 'border-red-300' : ''}`}
             value={formData.phone}
             onChange={handleChange}
           />
+          {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
         </div>
 
         <div>
@@ -211,7 +242,7 @@ const Register = () => {
         {showInstructorFields && (
           <div className="space-y-4 p-4 bg-blue-50 rounded-lg">
             <h3 className="text-lg font-medium text-gray-900">Instructor Information</h3>
-            
+
             <div>
               <label htmlFor="qualification" className="block text-sm font-medium text-gray-700">
                 Highest Qualification *
@@ -297,7 +328,7 @@ const Register = () => {
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
               <p className="text-sm text-yellow-800">
-                <strong>Next Step:</strong> After registration, you'll need to upload documents 
+                <strong>Next Step:</strong> After registration, you'll need to upload documents
                 (degree certificates, ID proof, etc.) for verification before your account is approved.
               </p>
             </div>

@@ -146,6 +146,38 @@ router.post('/', [
 
     const { receiverId, subject, content, priority = 'normal' } = req.body;
 
+    // Handle "All Students" broadcast
+    if (receiverId === 'all_students') {
+      // Fetch all active students (excluding sender if they are a student)
+      const students = await User.find({ 
+        role: 'student', 
+        isActive: true,
+        _id: { $ne: req.user._id } 
+      }).select('_id');
+
+      if (students.length === 0) {
+        return res.status(400).json({ message: 'No students found to message' });
+      }
+
+      const messages = students.map(student => ({
+        sender: req.user._id,
+        receiver: student._id,
+        subject,
+        content,
+        priority,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }));
+
+      await Message.insertMany(messages);
+
+      return res.status(201).json({
+        message: `Message sent successfully to ${messages.length} students`,
+        count: messages.length
+      });
+    }
+
+    // Single Recipient Logic
     const message = new Message({
       sender: req.user._id,
       receiver: receiverId,

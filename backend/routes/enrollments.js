@@ -198,6 +198,9 @@ router.get('/student/:studentId', auth, async (req, res) => {
     })
     .sort({ enrollmentDate: -1 });
 
+    console.log(` fetched ${enrollments.length} enrollments for user ${req.params.studentId}`);
+    enrollments.forEach(e => console.log(` - ${e.course?._id} status: ${e.status}`));
+
     res.json(enrollments);
   } catch (error) {
     console.error('Get student enrollments error:', error);

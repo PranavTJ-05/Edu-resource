@@ -14,6 +14,12 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: [50, 'Last name cannot exceed 50 characters']
   },
+  registrationNumber: {
+    type: String,
+    trim: true,
+    unique: true,
+    sparse: true // Allows null/undefined to be non-unique if not required for all roles
+  },
   email: {
     type: String,
     required: [true, 'Email is required'],

@@ -16,6 +16,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import MaterialUpload from './MaterialUpload';
 import toast from 'react-hot-toast';
 import type { Course, CourseMaterial } from '../../types';
+import BackButton from '../Common/BackButton';
 
 interface MaterialFormData {
   title: string;
@@ -148,9 +149,12 @@ const CourseMaterials = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Course Materials</h1>
-          <p className="text-gray-600">{course.title} ({course.courseCode})</p>
+        <div className="flex items-center">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Course Materials</h1>
+            <p className="text-gray-600">{course.title} ({course.courseCode})</p>
+          </div>
         </div>
         {canEdit && (
           <button

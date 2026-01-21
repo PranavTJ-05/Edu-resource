@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  Bars3Icon, 
-  BellIcon, 
-  UserCircleIcon 
+import {
+  Bars3Icon,
+  BellIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/dateUtils';
@@ -20,6 +20,7 @@ interface HeaderProps {
 const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -52,7 +53,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   const markAsRead = async (notificationId: string) => {
     try {
       await axios.put(`/api/notifications/${notificationId}/read`);
-      setNotifications(notifications.map(n => 
+      setNotifications(notifications.map(n =>
         n._id === notificationId ? { ...n, isRead: true } : n
       ));
       setUnreadCount(Math.max(0, unreadCount - 1));
@@ -64,7 +65,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read first
     await markAsRead(notification._id);
-    
+
     // Navigate based on notification type and targetUrl/targetId
     switch (notification.type) {
       case 'assignment':
@@ -75,11 +76,11 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           navigate('/assignments');
         }
         break;
-      
+
       case 'grade':
         navigate('/grades');
         break;
-      
+
       case 'doc_verified':
       case 'doc_rejected':
         if (notification.targetUrl) {
@@ -88,24 +89,24 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           navigate('/upload-documents');
         }
         break;
-      
+
       case 'course_approved':
       case 'course_rejected':
         navigate('/my-courses');
         break;
-      
+
       case 'user_approved':
         navigate('/dashboard');
         break;
-      
+
       case 'enrollment':
         navigate('/my-courses');
         break;
-      
+
       case 'payment':
         navigate('/profile');
         break;
-      
+
       case 'system':
       case 'announcement':
         if (notification.targetUrl) {
@@ -114,7 +115,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           navigate('/dashboard');
         }
         break;
-      
+
       default:
         // If targetUrl is provided, use it
         if (notification.targetUrl) {
@@ -139,7 +140,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             >
               <Bars3Icon className="h-6 w-6" />
             </button>
-            
+
             <h1 className="ml-4 text-xl font-semibold text-gray-900 dark:text-white">
               {location.pathname === '/' ? 'Dashboard' : location.pathname.split('/')[1].charAt(0).toUpperCase() + location.pathname.split('/')[1].slice(1)}
             </h1>
@@ -156,7 +157,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   </span>
                 )}
               </Menu.Button>
-              
+
               <Transition
                 as={Fragment}
                 enter="transition ease-out duration-100"
@@ -180,7 +181,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length === 0 ? (
                       <div className="p-4 text-center text-gray-500">
@@ -189,7 +190,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                     ) : (
                       notifications.slice(0, 5).map((notification) => (
                         <Menu.Item key={notification._id}>
-                          <div 
+                          <div
                             className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${!notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                             onClick={() => handleNotificationClick(notification)}
                           >
@@ -219,7 +220,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   {user?.firstName} {user?.lastName}
                 </span>
               </Menu.Button>
-              
+
               <Transition
                 as={Fragment}
                 enter="transition ease-out duration-100"
@@ -235,9 +236,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                       {({ active }) => (
                         <Link
                           to="/profile"
-                          className={`${
-                            active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                          } block px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
+                          className={`${active ? 'bg-gray-100 dark:bg-gray-700' : ''
+                            } block px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
                         >
                           Your Profile
                         </Link>
@@ -247,9 +247,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                       {({ active }) => (
                         <button
                           onClick={logout}
-                          className={`${
-                            active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                          } block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
+                          className={`${active ? 'bg-gray-100 dark:bg-gray-700' : ''
+                            } block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
                         >
                           Sign out
                         </button>

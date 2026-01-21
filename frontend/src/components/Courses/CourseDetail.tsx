@@ -17,6 +17,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import CourseContentViewer from './CourseContentViewer';
 import toast from 'react-hot-toast';
 import type { Course } from '../../types';
+import BackButton from '../Common/BackButton';
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -128,6 +129,7 @@ const CourseDetail = () => {
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-4 mb-4">
+              <BackButton />
               <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <BookOpenIcon className="h-8 w-8 text-white" />
               </div>

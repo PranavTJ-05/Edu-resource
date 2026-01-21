@@ -8,6 +8,7 @@ import {
   PhotoIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import BackButton from '../Common/BackButton';
 
 
 interface CourseFormData {
@@ -134,11 +135,14 @@ const CreateCourse = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Create New Course</h1>
-        <p className="mt-2 text-gray-600">
-          Fill in the details below to create a new course
-        </p>
+      <div className="mb-6 flex items-center">
+        <BackButton />
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Create New Course</h1>
+          <p className="mt-2 text-gray-600">
+            Fill in the details below to create a new course
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

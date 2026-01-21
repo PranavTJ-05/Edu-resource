@@ -4,6 +4,7 @@ import axios from 'axios';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import { formatDateTime } from '../../utils/dateUtils';
 import type { Submission, Assignment } from '../../types';
+import BackButton from '../Common/BackButton';
 
 
 
@@ -66,24 +67,21 @@ const AssignmentSubmissions = () => {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Assignment Submissions</h1>
-          {assignment && (
-            <div className="mt-2 text-sm text-gray-600">
-              <span className="font-medium">{assignment.title}</span>
-              {assignment.dueDate && (
-                <span className="ml-4">Due: {formatDateTime(assignment.dueDate)}</span>
-              )}
-              <span className="ml-4">Total Points: {assignment.totalPoints}</span>
-            </div>
-          )}
+        <div className="flex items-start">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Assignment Submissions</h1>
+            {assignment && (
+              <div className="mt-2 text-sm text-gray-600">
+                <span className="font-medium">{assignment.title}</span>
+                {assignment.dueDate && (
+                  <span className="ml-4">Due: {formatDateTime(assignment.dueDate)}</span>
+                )}
+                <span className="ml-4">Total Points: {assignment.totalPoints}</span>
+              </div>
+            )}
+          </div>
         </div>
-        <button
-          className="btn btn-secondary"
-          onClick={() => navigate(-1)}
-        >
-          Back
-        </button>
       </div>
 
       {/* Stats */}

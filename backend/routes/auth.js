@@ -93,9 +93,25 @@ const generateToken = (userId) => {
 router.post('/register', [
   body('firstName').trim().notEmpty().withMessage('First name is required'),
   body('lastName').trim().notEmpty().withMessage('Last name is required'),
-  body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email'),
+  body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email')
+    .custom(value => {
+      if (!value.endsWith('@gmail.com')) {
+        throw new Error('Email must be from @gmail.com domain');
+      }
+      return true;
+    }),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').isIn(['student', 'instructor']).withMessage('Invalid role')
+  body('role').isIn(['student', 'instructor']).withMessage('Invalid role'),
+  body('phone').optional().isLength({ min: 10, max: 10 }).withMessage('Phone number must be exactly 10 digits'),
+  body('registrationNumber').optional().custom((value, { req }) => {
+    if (req.body.role === 'student') {
+       if (!value) throw new Error('Registration number is required for students');
+       if (!/^\d{2}[a-zA-Z]{3}\d{4}$/.test(value)) {
+         throw new Error('Invalid Registration Number format (e.g., 11aaa1111)');
+       }
+    }
+    return true;
+  })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -106,7 +122,7 @@ router.post('/register', [
       });
     }
 
-    const { firstName, lastName, email, password, role, phone, dateOfBirth, instructorProfile } = req.body;
+    const { firstName, lastName, email, password, role, phone, dateOfBirth, instructorProfile, registrationNumber } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -129,7 +145,10 @@ router.post('/register', [
       password,
       role,
       phone,
-      dateOfBirth
+      role,
+      phone,
+      dateOfBirth,
+      registrationNumber
     };
 
     // Add instructor profile if role is instructor

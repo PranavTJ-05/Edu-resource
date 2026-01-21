@@ -44,7 +44,13 @@ const CourseList = () => {
     try {
       if (!user?._id) return;
       const response = await axios.get(`/api/enrollments/student/${user._id}`);
-      const enrolledIds = response.data.map((enrollment: any) => enrollment.course._id);
+      console.log('Raw enrollments response:', response.data);
+      const enrolledIds = response.data
+        .filter((enrollment: any) => {
+          console.log(`Enrollment for ${enrollment.course?._id}: ${enrollment.status}`);
+          return enrollment.status === 'enrolled' || enrollment.status === 'active';
+        })
+        .map((enrollment: any) => enrollment.course._id);
       setEnrolledCourseIds(enrolledIds);
     } catch (error) {
       console.error('Error fetching enrollments:', error);

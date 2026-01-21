@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
+import {
   PaperAirplaneIcon,
   InboxIcon,
   PencilIcon,
@@ -107,22 +107,20 @@ const Messages = () => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('inbox')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'inbox'
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <InboxIcon className="h-5 w-5 inline mr-2" />
             Inbox
           </button>
           <button
             onClick={() => setActiveTab('sent')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'sent'
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'sent'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <PaperAirplaneIcon className="h-5 w-5 inline mr-2" />
             Sent
@@ -149,15 +147,14 @@ const Messages = () => {
                     markAsRead(message._id);
                   }
                 }}
-                className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                  !message.isRead && activeTab === 'inbox' ? 'bg-blue-50 border-blue-200' : ''
-                }`}
+                className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${!message.isRead && activeTab === 'inbox' ? 'bg-blue-50 border-blue-200' : ''
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
                       <p className="font-medium text-gray-900">
-                        {activeTab === 'inbox' 
+                        {activeTab === 'inbox'
                           ? `${message.sender?.firstName} ${message.sender?.lastName}`
                           : `${message.receiver?.firstName} ${message.receiver?.lastName}`
                         }
@@ -185,9 +182,9 @@ const Messages = () => {
       {/* Compose Modal */}
       {showCompose && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Compose Message</h3>
-            
+
             <form onSubmit={handleSendMessage} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">To</label>
@@ -198,6 +195,9 @@ const Messages = () => {
                   className="input"
                 >
                   <option value="">Select recipient</option>
+                  <option value="all_students" className="font-bold text-blue-600">
+                    All Students
+                  </option>
                   {users.map(user => (
                     <option key={user._id} value={user._id}>
                       {user.firstName} {user.lastName} ({user.role})
@@ -254,7 +254,7 @@ const Messages = () => {
                 <h3 className="text-lg font-medium text-gray-900">{selectedMessage.subject}</h3>
                 <p className="text-sm text-gray-600">
                   {activeTab === 'inbox' ? 'From' : 'To'}: {' '}
-                  {activeTab === 'inbox' 
+                  {activeTab === 'inbox'
                     ? `${selectedMessage.sender?.firstName} ${selectedMessage.sender?.lastName}`
                     : `${selectedMessage.receiver?.firstName} ${selectedMessage.receiver?.lastName}`
                   }
@@ -276,7 +276,7 @@ const Messages = () => {
                 ×
               </button>
             </div>
-            
+
             <div className="border-t pt-4">
               <p className="whitespace-pre-wrap text-gray-700">{selectedMessage.content}</p>
             </div>

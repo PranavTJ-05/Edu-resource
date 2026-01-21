@@ -5,13 +5,13 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  DocumentIcon,
-  CloudArrowUpIcon,
-  ArrowLeftIcon
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import type { Course, CourseMaterial, Module } from '../../types';
+
+import BackButton from '../Common/BackButton';
 
 interface CourseFormData {
   title: string;
@@ -23,6 +23,7 @@ interface CourseFormData {
   level: '1st Year' | '2nd Year' | '3rd Year' | '4th Year';
   prerequisites: string[];
   isActive: boolean;
+  thumbnailImage: string;
   materials: CourseMaterial[];
   modules: Module[];
 }
@@ -43,6 +44,7 @@ const EditCourse = () => {
     level: '1st Year',
     prerequisites: [''],
     isActive: true,
+    thumbnailImage: '',
     materials: [],
     modules: []
   });
@@ -74,6 +76,7 @@ const EditCourse = () => {
         level: course.level,
         prerequisites: course.prerequisites && course.prerequisites.length > 0 ? course.prerequisites : [''],
         isActive: true,
+        thumbnailImage: course.thumbnailImage || '',
         materials: course.materials || [],
         modules: course.modules || []
       });
@@ -188,6 +191,35 @@ const EditCourse = () => {
     }
   };
 
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Validate file size (max 5MB for images)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB');
+        return;
+      }
+
+      try {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+        uploadFormData.append('type', 'course-material'); // Reusing existing type or could be 'image' if backend supported
+
+        const response = await axios.post('/api/upload', uploadFormData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        const fileUrl = response.data.url || response.data.filePath;
+        setFormData(prev => ({ ...prev, thumbnailImage: fileUrl }));
+        toast.success('Thumbnail uploaded successfully');
+      } catch (error: any) {
+        console.error('Thumbnail upload error:', error);
+        toast.error(error.response?.data?.message || 'Failed to upload thumbnail');
+      }
+    }
+  };
+
   const handleDeleteModule = async (moduleId: string) => {
     if (!window.confirm('Are you sure you want to delete this module?')) return;
 
@@ -219,7 +251,8 @@ const EditCourse = () => {
           url: material.url,
           filename: material.filename || '',
           description: material.description || ''
-        }))
+        })),
+        thumbnailImage: formData.thumbnailImage
       };
 
       await axios.put(`/api/courses/${id}`, cleanedData);
@@ -238,12 +271,7 @@ const EditCourse = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6 flex items-center">
-        <button
-          onClick={() => navigate('/courses')}
-          className="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
-          <ArrowLeftIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-        </button>
+        <BackButton />
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Course</h1>
           <p className="mt-1 text-gray-600 dark:text-gray-400">Update course details and settings</p>
@@ -251,6 +279,67 @@ const EditCourse = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Course Thumbnail */}
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Course Thumbnail</h2>
+          <div className="mt-2">
+            {!formData.thumbnailImage ? (
+              <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md hover:border-primary-500 transition-colors duration-200">
+                <div className="space-y-1 text-center">
+                  <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                    <label
+                      htmlFor="thumbnail-upload"
+                      className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                    >
+                      <span>Upload a file</span>
+                      <input
+                        id="thumbnail-upload"
+                        name="thumbnail-upload"
+                        type="file"
+                        className="sr-only"
+                        accept="image/*"
+                        onChange={handleThumbnailUpload}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, GIF up to 5MB
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <div className="relative h-48 w-full md:w-96 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group">
+                  <img
+                    src={formData.thumbnailImage}
+                    alt="Course Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, thumbnailImage: '' }))}
+                      className="p-2 bg-white rounded-full shadow-lg hover:bg-red-50 transition-colors duration-200"
+                      title="Remove image"
+                    >
+                      <TrashIcon className="h-6 w-6 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, thumbnailImage: '' }))}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                >
+                  Remove Image
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="card">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

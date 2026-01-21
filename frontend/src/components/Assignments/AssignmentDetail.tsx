@@ -14,6 +14,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { formatDateLong, getTimeUntilDate, formatDateTime, isValidDate } from '../../utils/dateUtils';
 import type { Assignment, Submission } from '../../types';
+import BackButton from '../Common/BackButton';
 
 const AssignmentDetail = () => {
   const { id } = useParams();
@@ -171,6 +172,7 @@ const AssignmentDetail = () => {
       <div className="card">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
+            <BackButton />
             <DocumentTextIcon className="h-8 w-8 text-blue-600" />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{assignment.title}</h1>

@@ -314,7 +314,7 @@ router.get('/', [
 // @access  Private (Instructor only)
 router.put('/:id', [auth, authorize('instructor')], async (req, res) => {
   try {
-    const { title, description, category, level, credits, maxStudents, fees, isActive, prerequisites, materials } = req.body;
+    const { title, description, category, level, credits, maxStudents, fees, isActive, prerequisites, materials, thumbnailImage } = req.body;
     
     let course = await Course.findById(req.params.id);
     if (!course) {
@@ -337,6 +337,7 @@ router.put('/:id', [auth, authorize('instructor')], async (req, res) => {
     if (isActive !== undefined) updates.isActive = isActive;
     if (prerequisites) updates.prerequisites = prerequisites;
     if (materials) updates.materials = materials;
+    if (thumbnailImage !== undefined) updates.thumbnailImage = thumbnailImage;
 
     course = await Course.findByIdAndUpdate(
       req.params.id,
