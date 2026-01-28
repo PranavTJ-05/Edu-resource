@@ -348,4 +348,71 @@ function getLetterGrade(percentage) {
   return 'F';
 }
 
+// @route   DELETE /api/submissions/:id
+// @desc    Delete a submission
+// @access  Private (Teacher/Admin or Owner)
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id)
+      .populate('assignment');
+
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+
+    // Check ownership/permission
+    // Students can delete their own if it's their submission (and maybe if not graded? optional rule)
+    // Instructors/Admins can delete any
+    const isOwner = submission.student.toString() === req.user._id.toString();
+    const isInstructor = req.user.role === 'instructor' || req.user.role === 'admin';
+
+    if (!isOwner && !isInstructor) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Checking if assignment belongs to instructor if user is instructor
+    if (req.user.role === 'instructor' && submission.assignment.instructor.toString() !== req.user._id.toString()) {
+       // Ideally we check this, but if role is 'instructor' strictly, maybe they can only delete submissions for their courses. 
+       // For now allowing if they are the instructor of the course or admin.
+       // Refined check:
+       if (submission.assignment.instructor.toString() !== req.user._id.toString()) {
+          return res.status(403).json({ message: 'Access denied: Not your assignment' });
+       }
+    }
+
+    // Delete files from filesystem
+    if (submission.attachments && submission.attachments.length > 0) {
+      const fs = require('fs');
+      const path = require('path');
+      
+      submission.attachments.forEach(file => {
+        // Construct path. submissions.js is in /routes, uploads is in /uploads (sibling to routes parent)
+        // file.path is likely 'uploads/documents/filename.ext'
+        // __dirname is .../backend/routes
+        // We need .../backend/
+        const rootDir = path.join(__dirname, '..'); 
+        const filePath = path.join(rootDir, file.path); // path.join handles separators
+        
+        console.log(`Attempting to delete file at: ${filePath}`);
+        
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error(`Failed to delete file ${filePath}:`, err);
+            // We continue even if file delete fails (maybe file already gone)
+          } else {
+            console.log(`Successfully deleted file: ${filePath}`);
+          }
+        });
+      });
+    }
+
+    await submission.deleteOne();
+
+    res.json({ message: 'Submission deleted successfully' });
+  } catch (error) {
+    console.error('Delete submission error:', error);
+    res.status(500).json({ message: 'Server error while deleting submission' });
+  }
+});
+
 module.exports = router;

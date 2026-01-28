@@ -25,9 +25,9 @@ const CourseList = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
+  const [searchTerm] = useState('');
+  const [selectedCategory] = useState('');
+  const [selectedLevel] = useState('');
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 

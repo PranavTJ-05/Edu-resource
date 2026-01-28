@@ -1,4 +1,4 @@
-# Course Management System (EduManage)
+# Course Management System (Edu-Resource)
 
 A comprehensive full-stack web application built with the MERN stack for managing courses, assignments, attendance, and grades in educational institutions.
 
@@ -79,18 +79,18 @@ npm install
 ```env
 NODE_ENV=development
 PORT=5000
-MONGODB_URI=mongodb://127.0.0.1:27017/edumanage_db
+MONGODB_URI=mongodb://127.0.0.1:27017/Edu-Resource_db
 JWT_SECRET=your_super_secret_jwt_key_here_make_it_long_and_secure
 JWT_EXPIRES_IN=7d
 
 # Admin User (for initial setup)
-ADMIN_EMAIL=admin@edumanage.com
+ADMIN_EMAIL=admin@Edu-Resource.com
 ADMIN_PASSWORD=SecureAdminPassword123!
 ADMIN_FIRST_NAME=System
 ADMIN_LAST_NAME=Administrator
 
 # Email Configuration (Optional)
-EMAIL_FROM=noreply@edumanage.com
+EMAIL_FROM=noreply@Edu-Resource.com
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your_email@gmail.com
@@ -276,7 +276,7 @@ The application will be available at `http://localhost:3000`
 
 ---
 
-**EduManage - Complete Course Management Solution for Modern Education**
+**Edu-Resource - Complete Course Management Solution for Modern Education**
 
 *Empowering students, supporting instructors, enabling administrators*
 

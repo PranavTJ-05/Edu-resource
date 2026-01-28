@@ -168,6 +168,14 @@ export interface Submission {
   submittedAt: string;
   isLate: boolean;
   feedback?: string;
+  grade?: {
+    points: number;
+    percentage: number;
+    letterGrade: string;
+    gradedAt: string;
+    gradedBy: string;
+  };
+  rubricScores?: Record<string, number>;
 }
 
 

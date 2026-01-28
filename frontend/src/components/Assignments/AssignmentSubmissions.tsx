@@ -5,8 +5,8 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import { formatDateTime } from '../../utils/dateUtils';
 import type { Submission, Assignment } from '../../types';
 import BackButton from '../Common/BackButton';
-
-
+import GradingModal from './GradingModal';
+import toast from 'react-hot-toast';
 
 interface SubmissionsData {
   assignment: Assignment;
@@ -20,6 +20,10 @@ const AssignmentSubmissions = () => {
   const [submissionsData, setSubmissionsData] = useState<SubmissionsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Grading Modal State
+  const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
   useEffect(() => {
     fetchSubmissions();
@@ -39,9 +43,26 @@ const AssignmentSubmissions = () => {
     }
   };
 
+  const handleOpenGrading = (submission: Submission) => {
+    setSelectedSubmission(submission);
+    setIsGradingModalOpen(true);
+  };
 
+  const handleGradeSubmit = async (data: { points: number; feedback: string }) => {
+    if (!selectedSubmission) return;
 
+    try {
+      await axios.put(`/api/submissions/${selectedSubmission._id}/grade`, data);
+      toast.success('Grade saved successfully');
 
+      // Refresh submissions
+      const response = await axios.get(`/api/submissions/assignment/${id}`);
+      setSubmissionsData(response.data);
+    } catch (error) {
+      console.error('Grading error:', error);
+      throw error; // Let modal handle error display
+    }
+  };
 
   if (loading) return <LoadingSpinner />;
 
@@ -123,6 +144,9 @@ const AssignmentSubmissions = () => {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Submitted Date
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Grade
+                  </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -158,7 +182,7 @@ const AssignmentSubmissions = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col space-y-1">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full w-fit ${submission.status === 'graded' ? 'bg-green-100 text-green-800' :
-                          submission.status === 'submitted' ? 'bg-green-100 text-green-800' :
+                          submission.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
                             'bg-yellow-100 text-yellow-800'
                           }`}>
                           {submission.status === 'submitted' ? 'Submitted' :
@@ -172,18 +196,33 @@ const AssignmentSubmissions = () => {
                       </div>
                     </td>
 
-                    {/* Joined/Submitted Date Column */}
+                    {/* Submitted Date Column */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDateTime(submission.submittedAt)}
+                    </td>
+
+                    {/* Grade Column */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {submission.status === 'graded' && submission.grade ? (
+                        <div>
+                          <span className="font-medium text-gray-900">{submission.grade.points}</span>
+                          <span className="text-gray-400">/{assignment?.totalPoints}</span>
+                          <span className="ml-2 text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
+                            {submission.grade.letterGrade}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </td>
 
                     {/* Actions Column */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-3">
-                        {/* View / Download Attachments Link - simplified */}
+                        {/* View File Link */}
                         {(submission.attachments?.length ?? 0) > 0 && (
                           <a
-                            href={`/api${submission.attachments![0].path}`}
+                            href={`http://localhost:5000/${submission.attachments![0].path.replace(/^\\|\\\\/, '')}`} // Strip leading slash if present just in case
                             target="_blank"
                             rel="noreferrer"
                             className="text-blue-600 hover:text-blue-900 font-medium transition-colors"
@@ -191,17 +230,39 @@ const AssignmentSubmissions = () => {
                             View File
                           </a>
                         )}
+
+                        {submission.status === 'graded' ? (
+                          <button
+                            onClick={() => handleOpenGrading(submission)}
+                            className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                          >
+                            Edit Grade
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenGrading(submission)}
+                            className="text-green-600 hover:text-green-900 font-medium transition-colors"
+                          >
+                            Grant Marks
+                          </button>
+                        )}
+
                         <button
-                          onClick={() => {/* Trigger grade modal or navigate to grade page - leaving as mocked action for now matching request */ }}
+                          onClick={async () => {
+                            if (window.confirm('Are you sure you want to delete this submission? This will permanently remove the associated file.')) {
+                              try {
+                                await axios.delete(`/api/submissions/${submission._id}`);
+                                toast.success('Submission deleted successfully');
+                                fetchSubmissions(); // Refresh list
+                              } catch (err: any) {
+                                console.error('Delete error:', err);
+                                toast.error(err.response?.data?.message || 'Failed to delete submission');
+                              }
+                            }
+                          }}
                           className="text-red-600 hover:text-red-900 font-medium transition-colors"
                         >
-                          Grant Marks
-                        </button>
-                        <button
-                          className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-                          onClick={() => {/* Details view logic */ }}
-                        >
-                          Edit
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -212,6 +273,15 @@ const AssignmentSubmissions = () => {
           </div>
         </div>
       )}
+
+      {/* Grading Modal */}
+      <GradingModal
+        isOpen={isGradingModalOpen}
+        onClose={() => setIsGradingModalOpen(false)}
+        onSubmit={handleGradeSubmit}
+        submission={selectedSubmission}
+        maxPoints={assignment?.totalPoints || 100}
+      />
     </div>
   );
 };

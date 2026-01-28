@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import toast from 'react-hot-toast';
-import type { Course, Module } from '../../types';
+import type { Course } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
 const ManageModules = () => {

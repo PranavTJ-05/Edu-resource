@@ -1,11 +1,45 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import mermaid from 'mermaid';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomOneLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+
+mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+});
+
+const Mermaid = ({ chart }: { chart: string }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [rendered, setRendered] = useState(false);
+
+    useEffect(() => {
+        if (ref.current && !rendered) {
+            mermaid.run({
+                nodes: [ref.current],
+                suppressErrors: true
+            }).then(() => setRendered(true)).catch(e => console.error(e));
+        }
+    }, [chart, rendered]);
+
+    return (
+        <div className="mermaid flex justify-center my-4 overflow-x-auto" ref={ref}>
+            {chart}
+        </div>
+    );
+};
+
 import {
     ArrowLeftIcon,
+    ArrowRightIcon,
     ClockIcon,
     BookOpenIcon,
     VideoCameraIcon,
@@ -22,16 +56,30 @@ const ModulePreview = () => {
     const [module, setModule] = useState<Module | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [nextModuleId, setNextModuleId] = useState<string | null>(null);
+    const [isLastModule, setIsLastModule] = useState(false);
 
     useEffect(() => {
         const fetchModule = async () => {
             try {
+                setLoading(true);
                 const res = await axios.get(`/api/courses/${courseId}`);
                 const course = res.data;
                 const foundModule = course.modules?.find((m: Module) => m._id === moduleId);
 
                 if (foundModule) {
                     setModule(foundModule);
+
+                    if (course.modules) {
+                        const currentIndex = course.modules.findIndex((m: Module) => m._id === moduleId);
+                        if (currentIndex !== -1 && currentIndex < course.modules.length - 1) {
+                            setNextModuleId(course.modules[currentIndex + 1]._id || null);
+                            setIsLastModule(false);
+                        } else if (currentIndex === course.modules.length - 1) {
+                            setNextModuleId(null);
+                            setIsLastModule(true);
+                        }
+                    }
                 } else {
                     setError('Module not found');
                 }
@@ -110,8 +158,80 @@ const ModulePreview = () => {
                             {module.markdownContent ? (
                                 <div className="prose max-w-none prose-blue">
                                     <ReactMarkdown
-                                        remarkPlugins={[remarkGfm]}
-                                        rehypePlugins={[rehypeRaw]}
+                                        remarkPlugins={[remarkGfm, remarkMath]}
+                                        rehypePlugins={[rehypeRaw, rehypeKatex]}
+                                        components={{
+                                            pre: ({ children }) => <>{children}</>,
+                                            a: ({ children, href }) => {
+                                                const getYoutubeId = (url: string | undefined) => {
+                                                    if (!url) return null;
+                                                    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                                                    const match = url.match(regExp);
+                                                    return (match && match[2].length === 11) ? match[2] : null;
+                                                };
+
+                                                const youtubeId = getYoutubeId(href);
+
+                                                if (youtubeId) {
+                                                    return (
+                                                        <div className="my-4 relative w-full pt-[56.25%] rounded-lg overflow-hidden border border-gray-200 shadow-sm bg-black">
+                                                            <iframe
+                                                                className="absolute top-0 left-0 w-full h-full"
+                                                                src={`https://www.youtube.com/embed/${youtubeId}`}
+                                                                title="YouTube video player"
+                                                                frameBorder="0"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                allowFullScreen
+                                                            ></iframe>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <a
+                                                        href={href || '#'}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-600 hover:underline"
+                                                    >
+                                                        {children}
+                                                    </a>
+                                                );
+                                            },
+                                            img: ({ src, alt }) => (
+                                                <img src={src} alt={alt} className="max-w-full h-auto rounded shadow-sm my-4 border border-gray-100" />
+                                            ),
+                                            code({ inline, className, children, ...props }: any) {
+                                                const match = /language-(\w+)/.exec(className || '');
+                                                const lang = match ? match[1] : '';
+
+                                                if (!inline && lang === 'mermaid') {
+                                                    return (
+                                                        <div className="flex justify-center my-4 bg-white p-4 rounded-lg border border-gray-100 shadow-sm overflow-x-auto">
+                                                            <Mermaid chart={String(children).replace(/\n$/, '')} />
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return !inline && match ? (
+                                                    <div className="rounded-md overflow-hidden bg-white my-4 border border-gray-100">
+                                                        <SyntaxHighlighter
+                                                            style={atomOneLight}
+                                                            language={lang}
+                                                            PreTag="div"
+                                                            customStyle={{ background: 'transparent', margin: 0, padding: '1rem' }}
+                                                            {...props}
+                                                        >
+                                                            {String(children).replace(/\n$/, '')}
+                                                        </SyntaxHighlighter>
+                                                    </div>
+                                                ) : (
+                                                    <code className={className} {...props}>
+                                                        {children}
+                                                    </code>
+                                                );
+                                            }
+                                        }}
                                     >
                                         {module.markdownContent}
                                     </ReactMarkdown>
@@ -170,9 +290,34 @@ const ModulePreview = () => {
                             )}
                         </div>
                     </div>
+
+                    {/* Navigation Buttons for Next Module */}
+                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+                        {nextModuleId ? (
+                            <button
+                                onClick={() => {
+                                    navigate(`/courses/${courseId}/modules/${nextModuleId}`);
+                                    window.scrollTo(0, 0);
+                                }}
+                                className="text-gray-500 hover:text-gray-900 flex items-center transition-colors text-sm font-medium"
+                            >
+                                Next Module
+                                <ArrowRightIcon className="ml-2 h-4 w-4" aria-hidden="true" />
+                            </button>
+                        ) : isLastModule ? (
+                            <div className="text-sm font-medium text-green-600 flex items-center">
+                                <span className="mr-2">🎉</span>
+                                You have completed this module
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
+
+
             </div>
+
         </div>
+
     );
 };
 

@@ -49,7 +49,7 @@ const EditCourse = () => {
     modules: []
   });
 
-  const [uploadingFiles, setUploadingFiles] = useState<number[]>([]);
+
 
   const categories = [
     'Computer Science', 'Mathematics', 'Physics', 'Chemistry',
@@ -121,75 +121,7 @@ const EditCourse = () => {
     setFormData(prev => ({ ...prev, prerequisites: newPrerequisites }));
   };
 
-  // Material handling functions
-  const addMaterial = () => {
-    setFormData(prev => ({
-      ...prev,
-      materials: [...prev.materials, {
-        title: '',
-        type: 'document',
-        description: '',
-        file: null,
-        url: ''
-      } as CourseMaterial]
-    }));
-  };
 
-  const removeMaterial = (index: number) => {
-    const newMaterials = formData.materials.filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, materials: newMaterials }));
-  };
-
-  const updateMaterial = (index: number, field: keyof CourseMaterial, value: any) => {
-    const newMaterials = [...formData.materials];
-    newMaterials[index] = { ...newMaterials[index], [field]: value };
-    setFormData(prev => ({ ...prev, materials: newMaterials }));
-  };
-
-  const handleFileUpload = async (index: number, file: File) => {
-    if (!file) return;
-
-    // Validate file size (max 100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      toast.error('File size must be less than 100MB');
-      return;
-    }
-
-    try {
-      setUploadingFiles(prev => [...prev, index]);
-
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-      uploadFormData.append('type', 'course-material');
-
-      const response = await axios.post('/api/upload', uploadFormData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      const fileUrl = response.data.url || response.data.filePath;
-
-      const updates: Partial<CourseMaterial> = {
-        url: fileUrl,
-        filename: response.data.filename
-      };
-
-      // Auto-fill title if empty
-      if (!formData.materials[index].title) {
-        updates.title = file.name.split('.')[0];
-      }
-
-      const newMaterials = [...formData.materials];
-      newMaterials[index] = { ...newMaterials[index], ...updates };
-      setFormData(prev => ({ ...prev, materials: newMaterials }));
-
-      toast.success('File uploaded successfully');
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      toast.error(error.response?.data?.message || 'Failed to upload file');
-    } finally {
-      setUploadingFiles(prev => prev.filter(i => i !== index));
-    }
-  };
 
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

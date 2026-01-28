@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import { 
+import {
   BookOpenIcon,
   AcademicCapIcon,
   UserGroupIcon,
@@ -223,16 +223,16 @@ const HomePage = () => {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <BookOpenIcon className="h-8 w-8 text-primary-600" />
-              <span className="ml-2 text-2xl font-bold text-gray-900">EduManage</span>
+              <span className="ml-2 text-2xl font-bold text-gray-900">Edu-Resource</span>
             </div>
-            
+
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-700 hover:text-primary-600">Features</a>
               <a href="#pricing" className="text-gray-700 hover:text-primary-600">Pricing</a>
               <a href="#testimonials" className="text-gray-700 hover:text-primary-600">Reviews</a>
               <a href="#security" className="text-gray-700 hover:text-primary-600">Security</a>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               {user ? (
                 <div className="flex items-center space-x-4">
@@ -267,10 +267,10 @@ const HomePage = () => {
                 <span className="block text-primary-200">For Modern Education</span>
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-primary-100 leading-relaxed">
-                Streamline course creation, student enrollment, and assignment management 
+                Streamline course creation, student enrollment, and assignment management
                 with our comprehensive educational platform.
               </p>
-              
+
               {!user && (
                 <div className="flex flex-col sm:flex-row gap-4 mb-8">
                   <Link to="/register" className="btn bg-white text-primary-600 hover:bg-gray-100 text-lg px-8 py-4 shadow-lg flex items-center justify-center">
@@ -289,13 +289,9 @@ const HomePage = () => {
                   <CheckCircleIcon className="h-5 w-5 mr-2" />
                   <span>Free for students</span>
                 </div>
-                <div className="flex items-center">
-                  <CheckCircleIcon className="h-5 w-5 mr-2" />
-                  <span>Instructor verification</span>
-                </div>
               </div>
             </div>
-            
+
             <div className="relative">
               <div className="bg-white rounded-lg shadow-2xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-300">
                 <div className="bg-gray-100 rounded-lg p-4 mb-4">
@@ -390,13 +386,13 @@ const HomePage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Why Choose EduManage?
+                Why Choose Edu-Resource?
               </h2>
               <p className="text-lg text-gray-600 mb-8">
-                Our platform is built by educators, for educators. We understand the challenges of modern education 
+                Our platform is built by educators, for educators. We understand the challenges of modern education
                 and provide solutions that actually work.
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {benefits.map((benefit, index) => (
                   <div key={index} className="flex items-start">
@@ -406,7 +402,7 @@ const HomePage = () => {
                 ))}
               </div>
             </div>
-            
+
             <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl shadow-lg p-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">Platform Statistics</h3>
               <div className="grid grid-cols-2 gap-6">
@@ -482,7 +478,7 @@ const HomePage = () => {
                   </div>
                   <p className="text-gray-600 mb-6">{plan.description}</p>
                 </div>
-                
+
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-center">
@@ -491,12 +487,11 @@ const HomePage = () => {
                     </li>
                   ))}
                 </ul>
-                
-                <button className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                  plan.popular 
-                    ? 'bg-primary-600 text-white hover:bg-primary-700' 
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                }`}>
+
+                <button className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${plan.popular
+                  ? 'bg-primary-600 text-white hover:bg-primary-700'
+                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                  }`}>
                   {plan.cta}
                 </button>
               </div>
@@ -527,8 +522,8 @@ const HomePage = () => {
                 </div>
                 <p className="text-gray-700 mb-6 italic leading-relaxed">"{testimonial.content}"</p>
                 <div className="flex items-center">
-                  <img 
-                    src={testimonial.image} 
+                  <img
+                    src={testimonial.image}
                     alt={testimonial.name}
                     className="w-12 h-12 rounded-full mr-4"
                   />
@@ -589,10 +584,10 @@ const HomePage = () => {
             Ready to Transform Your Educational Experience?
           </h2>
           <p className="text-xl mb-8 text-primary-100 max-w-2xl mx-auto">
-            Join educators and students using our platform to streamline course management, 
+            Join educators and students using our platform to streamline course management,
             improve learning outcomes, and enhance educational engagement.
           </p>
-          
+
           {!user && (
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register" className="btn bg-white text-primary-600 hover:bg-gray-100 text-lg px-8 py-4 shadow-lg">
@@ -603,7 +598,7 @@ const HomePage = () => {
               </button>
             </div>
           )}
-          
+
           <div className="mt-8 flex items-center justify-center space-x-8 text-primary-200">
             <div className="flex items-center">
               <CheckCircleIcon className="h-5 w-5 mr-2" />
@@ -628,17 +623,17 @@ const HomePage = () => {
             <div className="md:col-span-2">
               <div className="flex items-center mb-4">
                 <BookOpenIcon className="h-8 w-8 text-primary-400" />
-                <span className="ml-2 text-xl font-bold">EduManage</span>
+                <span className="ml-2 text-xl font-bold">Edu-Resource</span>
               </div>
               <p className="text-gray-400 mb-6 max-w-md">
-                Modern course management platform designed for the future of education. 
+                Modern course management platform designed for the future of education.
                 Empowering educators and students worldwide.
               </p>
               <div className="flex space-x-4">
                 {/* Social media icons would go here */}
               </div>
             </div>
-            
+
             <div>
               <h3 className="text-lg font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-gray-400">
@@ -648,7 +643,7 @@ const HomePage = () => {
                 <li><Link to="/integrations" className="hover:text-white">Integrations</Link></li>
               </ul>
             </div>
-            
+
             <div>
               <h3 className="text-lg font-semibold mb-4">Company</h3>
               <ul className="space-y-2 text-gray-400">
@@ -658,7 +653,7 @@ const HomePage = () => {
                 <li><Link to="/blog" className="hover:text-white">Blog</Link></li>
               </ul>
             </div>
-            
+
             <div>
               <h3 className="text-lg font-semibold mb-4">Support</h3>
               <ul className="space-y-2 text-gray-400">
@@ -669,9 +664,9 @@ const HomePage = () => {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400">&copy; {currentYear} EduManage. All rights reserved.</p>
+            <p className="text-gray-400">&copy; {currentYear} Edu-Resource. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link to="/privacy" className="text-gray-400 hover:text-white text-sm">Privacy Policy</Link>
               <Link to="/terms" className="text-gray-400 hover:text-white text-sm">Terms of Service</Link>
