@@ -430,7 +430,11 @@ router.delete('/:id', [auth, authorize('instructor')], async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate('instructor', 'firstName lastName email profileImage');
+      .populate('instructor', 'firstName lastName email profileImage')
+      .populate({
+        path: 'modules.assignments',
+        select: 'title dueDate isPublished'
+      });
 
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -996,6 +1000,8 @@ router.put('/:id/modules/:moduleId', [auth, authorize('instructor')], async (req
     if (req.body.duration) module.duration = req.body.duration;
     if (req.body.markdownContent) module.markdownContent = req.body.markdownContent;
     if (req.body.materials) module.materials = req.body.materials;
+    if (req.body.assignments) module.assignments = req.body.assignments;
+    if (typeof req.body.isAssignmentBlocking !== 'undefined') module.isAssignmentBlocking = req.body.isAssignmentBlocking;
 
     await course.save();
     res.json(module);

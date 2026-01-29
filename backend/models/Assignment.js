@@ -34,10 +34,11 @@ const assignmentSchema = new mongoose.Schema({
   },
   dueDate: {
     type: Date,
-    required: [true, 'Due date is required'],
+    // required: [true, 'Due date is required'], // Made optional
     validate: {
       validator: function(value) {
-        return value && value > new Date();
+        if (!value) return true; // Allow null/undefined
+        return value > new Date();
       },
       message: 'Due date must be in the future'
     }
@@ -107,7 +108,7 @@ assignmentSchema.virtual('formattedDueDate').get(function() {
 
 // Virtual to get time until due
 assignmentSchema.virtual('timeUntilDue').get(function() {
-  if (!this.dueDate) return 'No due date';
+  if (!this.dueDate) return 'No due date'; // Handle null due date
   
   const now = new Date();
   const diffTime = this.dueDate - now;

@@ -57,6 +57,15 @@ const courseSchema = new mongoose.Schema({
     description: String,
     duration: String, // e.g., "2 hours"
     markdownContent: String, // The content from the Markdown Manager
+    assignments: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Assignment'
+    }],
+    isAssignmentBlocking: {
+      type: Boolean,
+      default: true
+    },
+    // assignment field deprecated, kept for reference if needed but better removed to force migration
     materials: [{
       title: String,
       type: {

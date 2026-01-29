@@ -285,7 +285,7 @@ router.put('/profile', auth, [
   body('firstName').optional().trim().notEmpty().withMessage('First name cannot be empty'),
   body('lastName').optional().trim().notEmpty().withMessage('Last name cannot be empty'),
   body('phone').optional().trim(),
-  body('dateOfBirth').optional().isISO8601().withMessage('Invalid date format')
+  body('dateOfBirth').optional({ checkFalsy: true }).isISO8601().withMessage('Invalid date format')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

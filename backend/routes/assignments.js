@@ -125,7 +125,8 @@ router.post('/', [
   body('courseId').notEmpty().withMessage('Course ID is required'),
   body('type').isIn(['homework', 'quiz', 'exam', 'project', 'presentation']).withMessage('Invalid assignment type'),
   body('totalPoints').isInt({ min: 1 }).withMessage('Total points must be at least 1'),
-  body('dueDate').isISO8601().withMessage('Valid due date is required').custom((value) => {
+  body('dueDate').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Valid due date is required if provided').custom((value) => {
+    if (!value) return true;
     const dueDate = new Date(value);
     if (isNaN(dueDate.getTime())) {
       throw new Error('Invalid date format');

@@ -415,4 +415,28 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/submissions/my-course-progress/:courseId
+// @desc    Get all submissions for a specific course for the current student
+// @access  Private (Student only)
+router.get('/my-course-progress/:courseId', [auth, authorize('student')], async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    // 1. Get all assignments for this course
+    const assignments = await Assignment.find({ course: courseId }).select('_id');
+    const assignmentIds = assignments.map(a => a._id);
+
+    // 2. Get all submissions for these assignments by this student
+    const submissions = await Submission.find({
+      student: req.user._id,
+      assignment: { $in: assignmentIds }
+    }).select('assignment status grade');
+
+    res.json(submissions);
+  } catch (error) {
+    console.error('Get course progress error:', error);
+    res.status(500).json({ message: 'Server error while fetching course progress' });
+  }
+});
+
 module.exports = router;
