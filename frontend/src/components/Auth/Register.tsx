@@ -10,7 +10,7 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  role: 'student' | 'instructor';
+  role: 'student'; // Fixed role
   phone: string;
   registrationNumber: string;
   instructorProfile: {
@@ -42,7 +42,7 @@ const Register = () => {
       portfolio: ''
     }
   });
-  const [showInstructorFields, setShowInstructorFields] = useState(false);
+  // const [showInstructorFields, setShowInstructorFields] = useState(false); // Removed
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,27 +53,10 @@ const Register = () => {
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
-    if (name === 'role') {
-      setShowInstructorFields(value === 'instructor');
-      setFormData({
-        ...formData,
-        role: value as 'student' | 'instructor'
-      });
-    } else if (name.startsWith('instructorProfile.')) {
-      const field = name.split('.')[1];
-      setFormData({
-        ...formData,
-        instructorProfile: {
-          ...formData.instructorProfile,
-          [field]: value
-        }
-      });
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value as any
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value as any
+    }));
 
     // Clear error when user starts typing
     if (errors[name]) {
@@ -119,7 +102,7 @@ const Register = () => {
         // Redirect to document upload for instructors
         navigate('/upload-documents');
       } else {
-        navigate('/dashboard');
+        navigate('/');
       }
     }
 
@@ -188,24 +171,24 @@ const Register = () => {
           {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
         </div>
 
-        {formData.role === 'student' && (
-          <div>
-            <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
-              Registration Number (e.g., 11aaa1111)
-            </label>
-            <input
-              id="registrationNumber"
-              name="registrationNumber"
-              type="text"
-              required
-              className={`input mt-1 ${errors.registrationNumber ? 'border-red-300' : ''}`}
-              value={formData.registrationNumber}
-              onChange={handleChange}
-              placeholder="11aaa1111"
-            />
-            {errors.registrationNumber && <p className="mt-1 text-sm text-red-600">{errors.registrationNumber}</p>}
-          </div>
-        )}
+
+        {/* Always visible for student */}
+        <div>
+          <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
+            Registration Number (e.g., 11aaa1111)
+          </label>
+          <input
+            id="registrationNumber"
+            name="registrationNumber"
+            type="text"
+            required
+            className={`input mt-1 ${errors.registrationNumber ? 'border-red-300' : ''}`}
+            value={formData.registrationNumber}
+            onChange={handleChange}
+            placeholder="11aaa1111"
+          />
+          {errors.registrationNumber && <p className="mt-1 text-sm text-red-600">{errors.registrationNumber}</p>}
+        </div>
 
         <div>
           <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
@@ -221,119 +204,6 @@ const Register = () => {
           />
           {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
         </div>
-
-        <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-            I am a
-          </label>
-          <select
-            id="role"
-            name="role"
-            className="input mt-1"
-            value={formData.role}
-            onChange={handleChange}
-          >
-            <option value="student">Student</option>
-            <option value="instructor">Instructor</option>
-          </select>
-        </div>
-
-        {/* Instructor Profile Fields */}
-        {showInstructorFields && (
-          <div className="space-y-4 p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900">Instructor Information</h3>
-
-            <div>
-              <label htmlFor="qualification" className="block text-sm font-medium text-gray-700">
-                Highest Qualification *
-              </label>
-              <select
-                id="qualification"
-                name="instructorProfile.qualification"
-                required={showInstructorFields}
-                className="input mt-1"
-                value={formData.instructorProfile.qualification}
-                onChange={handleChange}
-              >
-                <option value="">Select Qualification</option>
-                <option value="bachelors">Bachelor's Degree</option>
-                <option value="masters">Master's Degree</option>
-                <option value="phd">PhD</option>
-                <option value="diploma">Diploma</option>
-                <option value="certificate">Professional Certificate</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="experience" className="block text-sm font-medium text-gray-700">
-                Years of Teaching Experience
-              </label>
-              <input
-                id="experience"
-                name="instructorProfile.experience"
-                type="number"
-                min="0"
-                className="input mt-1"
-                value={formData.instructorProfile.experience}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-gray-700">
-                Bio / Summary
-              </label>
-              <textarea
-                id="bio"
-                name="instructorProfile.bio"
-                rows={3}
-                className="input mt-1"
-                placeholder="Brief description of your teaching background and expertise..."
-                value={formData.instructorProfile.bio}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="linkedIn" className="block text-sm font-medium text-gray-700">
-                  LinkedIn Profile (optional)
-                </label>
-                <input
-                  id="linkedIn"
-                  name="instructorProfile.linkedIn"
-                  type="url"
-                  className="input mt-1"
-                  placeholder="https://linkedin.com/in/yourprofile"
-                  value={formData.instructorProfile.linkedIn}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="portfolio" className="block text-sm font-medium text-gray-700">
-                  Portfolio Website (optional)
-                </label>
-                <input
-                  id="portfolio"
-                  name="instructorProfile.portfolio"
-                  type="url"
-                  className="input mt-1"
-                  placeholder="https://yourwebsite.com"
-                  value={formData.instructorProfile.portfolio}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              <p className="text-sm text-yellow-800">
-                <strong>Next Step:</strong> After registration, you'll need to upload documents
-                (degree certificates, ID proof, etc.) for verification before your account is approved.
-              </p>
-            </div>
-          </div>
-        )}
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
@@ -389,8 +259,8 @@ const Register = () => {
             {isLoading ? 'Creating account...' : 'Create account'}
           </button>
         </div>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 };
 

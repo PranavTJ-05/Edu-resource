@@ -27,13 +27,26 @@ const CourseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+  const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<string>>(new Set()); // New state
 
   useEffect(() => {
     fetchCourseDetails();
     if (user?.role === 'student') {
       checkEnrollmentStatus();
+      fetchCourseProgress(); // Fetch progress
     }
   }, [id, user]);
+
+  const fetchCourseProgress = async () => {
+    if (!id || user?.role !== 'student') return;
+    try {
+      const response = await axios.get<any[]>(`/api/submissions/my-course-progress/${id}`);
+      const submittedIds = new Set(response.data.map(sub => sub.assignment));
+      setCompletedAssignmentIds(submittedIds);
+    } catch (error) {
+      console.error('Error fetching course progress:', error);
+    }
+  };
 
   const fetchCourseDetails = async () => {
     try {
@@ -209,11 +222,18 @@ const CourseDetail = () => {
               </button>
             )}
 
-            {user?.role === 'student' && (
+            {(!user || user?.role === 'student') && (
               <>
                 {!isEnrolled ? (
                   <button
-                    onClick={handleEnroll}
+                    onClick={() => {
+                      if (!user) {
+                        toast.error('Please login to enroll');
+                        navigate('/login');
+                        return;
+                      }
+                      handleEnroll();
+                    }}
                     disabled={enrollmentLoading || course.currentEnrollment >= course.maxStudents || !course.isApproved}
                     className="btn btn-primary disabled:opacity-50"
                   >
@@ -236,12 +256,15 @@ const CourseDetail = () => {
       </div>
 
       {/* Course Materials - Now visible to all users */}
+      {/* Course Materials - Now with locking */}
       <CourseContentViewer
         materials={course.materials || []}
         modules={course.modules || []}
         isEnrolled={isEnrolled}
         canEdit={!!canEdit}
         courseId={course._id || id || ''}
+        completedAssignmentIds={completedAssignmentIds} // Pass to viewer
+        userRole={user?.role} // Pass role
       />
 
       {/* Prerequisites */}

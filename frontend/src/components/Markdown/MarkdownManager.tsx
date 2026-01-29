@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import type { ChangeEvent } from 'react';
 import { saveAs } from "file-saver";
 import { FiDownload, FiBold, FiItalic, FiList, FiLink, FiImage } from "react-icons/fi";
-import { LuImport, LuMaximize, LuMinimize, LuPenLine, LuClipboard, LuClipboardCheck, LuHeading1, LuHeading2, LuQuote, LuCode } from "react-icons/lu";
+import { LuImport, LuMaximize, LuMinimize, LuClipboard, LuClipboardCheck, LuHeading1, LuHeading2, LuQuote, LuCode } from "react-icons/lu";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import { Link } from "react-router-dom";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { atomOneLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import Stackedit from 'stackedit-js';
 
 interface MarkdownManagerProps {
   initialValue?: string;
@@ -17,6 +18,53 @@ interface MarkdownManagerProps {
   onChange?: (markdown: string) => void;
   height?: string;
 }
+
+
+// Initialize mermaid (outside component to avoid re-init)
+import mermaid from 'mermaid';
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  securityLevel: 'loose',
+});
+
+const Mermaid = ({ chart }: { chart: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [rendered, setRendered] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (ref.current && !rendered) {
+      setError(null);
+      mermaid.render(`mermaid-${Math.random().toString(36).substr(2, 9)}`, chart)
+        .then(({ svg }) => {
+          if (ref.current) {
+            ref.current.innerHTML = svg;
+            setRendered(true);
+          }
+        })
+        .catch((e) => {
+          console.error("Mermaid error:", e);
+          setError("Invalid Mermaid Syntax");
+          setRendered(true); // Stop retrying
+        });
+    }
+  }, [chart, rendered]);
+
+  // Reset rendered state when chart changes
+  useEffect(() => {
+    setRendered(false);
+  }, [chart]);
+
+  if (error) return <div className="text-red-500 text-xs p-2 bg-red-50 border border-red-100 rounded">{error}</div>;
+
+  return (
+    <div className="mermaid flex justify-center my-4 overflow-x-auto" ref={ref}>
+      {/* SVG injected here */}
+    </div>
+  );
+};
 
 const MarkdownManager: React.FC<MarkdownManagerProps> = ({
   initialValue = "",
@@ -72,22 +120,6 @@ const MarkdownManager: React.FC<MarkdownManagerProps> = ({
     });
   };
 
-  const openStackEdit = () => {
-    const stackedit = new Stackedit();
-
-    stackedit.openFile({
-      name: documentName,
-      content: {
-        text: markdown
-      }
-    });
-
-    stackedit.on('fileChange', (file: any) => {
-      const content = file.content.text;
-      setMarkdown(content);
-      if (onChange) onChange(content);
-    });
-  };
 
   const insertMarkdown = (prefix: string, suffix: string = "") => {
     if (!textareaRef.current) return;
@@ -308,8 +340,8 @@ const MarkdownManager: React.FC<MarkdownManagerProps> = ({
               {markdown ? (
                 <div className="prose max-w-none prose-headings:font-semibold prose-a:text-blue-600 prose-img:rounded-md">
                   <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeRaw, rehypeKatex]}
                     components={{
                       h1: ({ children }) => (
                         <h1 className="text-[2em] text-[#24292e] font-semibold mt-[24px] mb-[16px] border-b pb-[.3rem] border-[#eaecef]">
@@ -363,7 +395,7 @@ const MarkdownManager: React.FC<MarkdownManagerProps> = ({
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#0366d6] hover:underline"
-                            onClick={(e) => {
+                            onClick={() => {
                               // If it's an internal link handled by router, we could use navigate, 
                               // but for now standard <a> is safer for generic Markdown links which form external or hashed links
                             }}
@@ -374,6 +406,16 @@ const MarkdownManager: React.FC<MarkdownManagerProps> = ({
                       },
                       code({ inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || "");
+                        const lang = match ? match[1] : '';
+
+                        if (!inline && lang === 'mermaid') {
+                          return (
+                            <div className="flex justify-center my-4 bg-white p-4 rounded-lg border border-gray-100 shadow-sm overflow-x-auto">
+                              <Mermaid chart={String(children).replace(/\n$/, '')} />
+                            </div>
+                          );
+                        }
+
                         return !inline && match ? (
                           <div className="rounded-md overflow-hidden bg-gray-50 my-4 border border-gray-100">
                             <SyntaxHighlighter

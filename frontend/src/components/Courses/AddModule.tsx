@@ -22,7 +22,8 @@ import {
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { useDropzone } from 'react-dropzone';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import type { CourseMaterial, Module } from '../../types';
+import type { CourseMaterial, Module, Assignment } from '../../types';
+import AssignmentForm from '../Assignments/AssignmentForm';
 
 interface DraggableModuleProps {
   mod: Module;
@@ -125,10 +126,16 @@ const DraggableModule = ({ mod, index, id, moveModule, navigate, handleRemoveMod
               <h3 className="text-base font-semibold text-gray-900">{mod.title}</h3>
             </div>
             {/* Keeping existing duration logic */}
-            <span className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            <span className="flex items-center text-sm text-gray-500">
               <ClockIcon className="w-3 h-3 mr-1" />
               {mod.duration || 'No duration'}
             </span>
+            {mod.assignments && mod.assignments.length > 0 && (
+              <span className="flex items-center text-xs text-indigo-500 bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
+                <DocumentIcon className="w-3 h-3 mr-1" />
+                {mod.assignments.length} Assignments
+              </span>
+            )}
           </div>
 
           <p className="text-gray-600 text-sm mb-3 line-clamp-2">{mod.description}</p>
@@ -193,7 +200,13 @@ const AddModule = () => {
     title: '',
     description: '',
     duration: '',
+    assignments: [] as string[],
+    isAssignmentBlocking: true, // Default to true
   });
+
+  const [availableAssignments, setAvailableAssignments] = useState<Assignment[]>([]);
+  const [isCreatingAssignment, setIsCreatingAssignment] = useState(false);
+
 
   // Markdown Content
   const [markdownContent, setMarkdownContent] = useState('');
@@ -223,6 +236,14 @@ const AddModule = () => {
       setModulesList(course.modules || []);
       setOriginalModulesList(course.modules || []);
 
+      // Fetch assignments for this course
+      try {
+        const assignRes = await axios.get(`/api/assignments/course/${id}`);
+        setAvailableAssignments(assignRes.data);
+      } catch (err) {
+        console.error("Failed to load assignments", err);
+      }
+
       if (moduleId && !editingModuleId) {
         // Initial deep link load if provided
         const module = course.modules.find((m: any) => m._id === moduleId);
@@ -232,6 +253,8 @@ const AddModule = () => {
             title: module.title,
             description: module.description || '',
             duration: module.duration || '',
+            assignments: module.assignments?.map((a: any) => typeof a === 'object' ? a._id : a) || [],
+            isAssignmentBlocking: module.isAssignmentBlocking !== undefined ? module.isAssignmentBlocking : true,
           });
           setMarkdownContent(module.markdownContent || '');
           setMaterials(module.materials || []);
@@ -344,6 +367,8 @@ const AddModule = () => {
           title: '',
           description: '',
           duration: '',
+          assignments: [],
+          isAssignmentBlocking: true,
         });
         setMarkdownContent('');
         setMaterials([]);
@@ -361,6 +386,8 @@ const AddModule = () => {
       title: mod.title,
       description: mod.description || '',
       duration: mod.duration || '',
+      assignments: (mod.assignments || []).map((a: any) => typeof a === 'object' ? a._id : a),
+      isAssignmentBlocking: mod.isAssignmentBlocking !== undefined ? mod.isAssignmentBlocking : true,
     });
     setMarkdownContent(mod.markdownContent || '');
     setMaterials(mod.materials || []);
@@ -375,7 +402,8 @@ const AddModule = () => {
 
   const handleCancelEdit = () => {
     setEditingModuleId(null);
-    setModuleData({ title: '', description: '', duration: '' });
+    setEditingModuleId(null);
+    setModuleData({ title: '', description: '', duration: '', assignments: [], isAssignmentBlocking: true });
     setMarkdownContent('');
     setMaterials([]);
     setTempMaterial({ title: '', file: null, type: 'document', url: '', description: '' });
@@ -430,6 +458,7 @@ const AddModule = () => {
       navigate(`/courses/${id}`);
     }
   };
+
 
   const moveModule = (dragIndex: number, hoverIndex: number) => {
     const dragModule = modulesList[dragIndex];
@@ -511,8 +540,7 @@ const AddModule = () => {
                   className="input w-full"
                   value={moduleData.title}
                   onChange={(e) => setModuleData({ ...moduleData, title: e.target.value })}
-                  placeholder="e.g. Introduction to React"
-                />
+                  placeholder="e.g. Introduction to React" />
               </div>
               <div className="col-span-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
@@ -521,8 +549,7 @@ const AddModule = () => {
                   className="input w-full"
                   value={moduleData.duration}
                   onChange={(e) => setModuleData({ ...moduleData, duration: e.target.value })}
-                  placeholder="e.g. 2 hours"
-                />
+                  placeholder="e.g. 2 hours" />
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -531,8 +558,7 @@ const AddModule = () => {
                   rows={3}
                   value={moduleData.description}
                   onChange={(e) => setModuleData({ ...moduleData, description: e.target.value })}
-                  placeholder="Brief overview of what students will learn..."
-                />
+                  placeholder="Brief overview of what students will learn..." />
               </div>
             </div>
 
@@ -580,8 +606,7 @@ const AddModule = () => {
                         className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors"
                         placeholder="e.g. Week 1 Lecture Slides"
                         value={tempMaterial.title}
-                        onChange={(e) => setTempMaterial({ ...tempMaterial, title: e.target.value })}
-                      />
+                        onChange={(e) => setTempMaterial({ ...tempMaterial, title: e.target.value })} />
                     </div>
 
                     <div>
@@ -591,8 +616,7 @@ const AddModule = () => {
                         placeholder="Briefly describe this material..."
                         rows={3}
                         value={tempMaterial.description}
-                        onChange={(e) => setTempMaterial({ ...tempMaterial, description: e.target.value })}
-                      />
+                        onChange={(e) => setTempMaterial({ ...tempMaterial, description: e.target.value })} />
                     </div>
                   </div>
 
@@ -611,8 +635,7 @@ const AddModule = () => {
                             className="input text-sm w-full mb-2 text-center"
                             placeholder="https://example.com/resource"
                             value={tempMaterial.url}
-                            onChange={(e) => setTempMaterial({ ...tempMaterial, url: e.target.value })}
-                          />
+                            onChange={(e) => setTempMaterial({ ...tempMaterial, url: e.target.value })} />
                           <p className="text-xs text-gray-500">Paste the full URL to the external resource</p>
                         </div>
                       ) : (
@@ -622,8 +645,7 @@ const AddModule = () => {
                               {...getRootProps()}
                               className={`h-full min-h-[200px] flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-all cursor-pointer ${isDragActive
                                 ? 'border-blue-500 bg-blue-50 scale-[1.02]'
-                                : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
-                                }`}
+                                : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'}`}
                             >
                               <input {...getInputProps()} />
                               <div className="p-3 bg-white rounded-full shadow-sm mb-3">
@@ -734,26 +756,153 @@ const AddModule = () => {
                   key={editingModuleId || 'new-module'} // Force re-render when switching contexts
                 />
               </div>
+
+              <div className="border-t border-gray-100 my-6"></div>
+
+              {/* Assignment Section (Moved Bottom) */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Module Assignments</h3>
+                  {!isCreatingAssignment && (
+                    <button
+                      onClick={() => setIsCreatingAssignment(true)}
+                      className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      + Create New Assignment
+                    </button>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+
+                  {/* List of Added Assignments */}
+                  {moduleData.assignments && moduleData.assignments.length > 0 && (
+                    <div className="border-b border-gray-200 bg-white">
+                      {moduleData.assignments.map((assignId, index) => {
+                        const assignParams = availableAssignments.find(a => a._id === assignId);
+                        return (
+                          <div key={index} className="px-6 py-4 border-b last:border-0 border-gray-100 flex justify-between items-center hover:bg-gray-50">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                <DocumentIcon className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-900">{assignParams?.title || 'Unknown Assignment'}</h4>
+                                <p className="text-xs text-gray-500">
+                                  Due: {assignParams?.dueDate ? new Date(assignParams.dueDate).toLocaleDateString() : 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const newAssignments = [...moduleData.assignments];
+                                newAssignments.splice(index, 1);
+                                setModuleData({ ...moduleData, assignments: newAssignments });
+                              }}
+                              className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                              title="Remove Assignment"
+                            >
+                              <TrashIcon className="w-5 h-5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Add New / Select Existing Area */}
+                  {isCreatingAssignment ? (
+                    <div className="p-6 bg-gray-50">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Create New Assignment</h4>
+                        <button onClick={() => setIsCreatingAssignment(false)} className="text-gray-400 hover:text-gray-600">
+                          <XMarkIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <AssignmentForm
+                        embedded={true}
+                        initialCourseId={id}
+                        onSuccess={(newAssignment) => {
+                          // Append to list if not already there
+                          if (!moduleData.assignments.includes(newAssignment._id)) {
+                            setModuleData(prev => ({ ...prev, assignments: [...prev.assignments, newAssignment._id] }));
+                          }
+                          setIsCreatingAssignment(false);
+                          setAvailableAssignments(prev => {
+                            if (prev.find(p => p._id === newAssignment._id)) return prev;
+                            return [...prev, newAssignment];
+                          });
+                          toast.success("Assignment created and linked!");
+                        }}
+                        onCancel={() => setIsCreatingAssignment(false)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-6 bg-gray-50">
+                      <div className="max-w-md mx-auto">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Link Existing Assignment</label>
+                        <select
+                          className="input w-full mb-3"
+                          value=""
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val) {
+                              if (moduleData.assignments.includes(val)) {
+                                toast.error("Assignment already added");
+                                return;
+                              }
+                              setModuleData(prev => ({ ...prev, assignments: [...prev.assignments, val] }));
+                            }
+                          }}
+                        >
+                          <option value="">-- Select Assignment to Link --</option>
+                          {availableAssignments.filter(a => !moduleData.assignments.includes(a._id)).map((assign) => (
+                            <option key={assign._id} value={assign._id}>
+                              {assign.title} (Due: {new Date(assign.dueDate).toLocaleDateString()})
+                            </option>
+                          ))}
+                        </select>
+
+                        <div className="flex items-center mt-4 pt-4 border-t border-gray-200">
+                          <input
+                            type="checkbox"
+                            id="blocking-checkbox"
+                            checked={moduleData.isAssignmentBlocking}
+                            onChange={(e) => setModuleData({ ...moduleData, isAssignmentBlocking: e.target.checked })}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                          <label htmlFor="blocking-checkbox" className="ml-2 block text-sm text-gray-900">
+                            Require all assignments to proceed (Blocking)
+                          </label>
+                        </div>
+                        <p className="ml-6 text-xs text-gray-500 mt-1">
+                          If checked, students cannot access the next module until ALL assignments in this module are submitted.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+
             </div>
-          </div>
+            <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
 
-          <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
-
-            {editingModuleId && (
+              {editingModuleId && (
+                <button
+                  onClick={handleCancelEdit}
+                  className="btn bg-white border border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  Cancel Edit
+                </button>
+              )}
               <button
-                onClick={handleCancelEdit}
-                className="btn bg-white border border-red-200 text-red-600 hover:bg-red-50"
+                onClick={handleSaveModule}
+                disabled={loading}
+                className="btn btn-primary min-w-[150px]"
               >
-                Cancel Edit
+                {loading ? 'Saving...' : (editingModuleId ? 'Update Module' : 'Save & Add Module')}
               </button>
-            )}
-            <button
-              onClick={handleSaveModule}
-              disabled={loading}
-              className="btn btn-primary min-w-[150px]"
-            >
-              {loading ? 'Saving...' : (editingModuleId ? 'Update Module' : 'Save & Add Module')}
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -790,8 +939,7 @@ const AddModule = () => {
                   moveModule={moveModule}
                   navigate={navigate}
                   handleRemoveModule={handleRemoveModule}
-                  handleEditModule={handleEditModule}
-                />
+                  handleEditModule={handleEditModule} />
               ))}
             </div>
           ) : (
@@ -811,7 +959,7 @@ const AddModule = () => {
           Finish & View Course
         </button>
       </div>
-    </div>
+    </div >
   );
 };
 export default AddModule;

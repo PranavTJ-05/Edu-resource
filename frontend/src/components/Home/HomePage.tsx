@@ -237,7 +237,7 @@ const HomePage = () => {
               {user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-gray-700">Welcome, {user.firstName}!</span>
-                  <Link to="/dashboard" className="btn btn-primary">
+                  <Link to="/" className="btn btn-primary">
                     Go to Dashboard
                   </Link>
                 </div>

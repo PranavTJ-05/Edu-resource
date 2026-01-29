@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
 import {
     DocumentIcon,
     LinkIcon,
@@ -19,6 +21,8 @@ interface CourseContentViewerProps {
     isEnrolled: boolean;
     canEdit: boolean;
     courseId: string;
+    completedAssignmentIds?: Set<string>;
+    userRole?: string;
 }
 
 const CourseContentViewer = ({
@@ -27,8 +31,11 @@ const CourseContentViewer = ({
     isEnrolled,
     canEdit,
     courseId,
+    completedAssignmentIds = new Set(),
+    userRole
 }: CourseContentViewerProps) => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [selectedMaterial, setSelectedMaterial] = useState<CourseMaterial | null>(null);
 
     const getIconForType = (type: string) => {
@@ -54,7 +61,14 @@ const CourseContentViewer = ({
                     ? 'border-gray-200 hover:border-blue-300 hover:shadow-sm cursor-pointer'
                     : 'border-gray-100 bg-gray-50'
                     }`}
-                onClick={() => canAccess && setSelectedMaterial(material)}
+                onClick={() => {
+                    if (!user) {
+                        toast.error('Please login to view course content');
+                        navigate('/login');
+                        return;
+                    }
+                    if (canAccess) setSelectedMaterial(material);
+                }}
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 flex-1">
@@ -134,47 +148,102 @@ const CourseContentViewer = ({
                 {/* Modules List */}
                 {hasModules && (
                     <div className="space-y-4">
-                        {modules!.map((module, mIdx) => (
-                            <div
-                                key={module._id || mIdx}
-                                onClick={() => {
-                                    if (module._id) {
-                                        navigate(`/courses/${courseId}/modules/${module._id}`);
+                        {modules!.map((module, mIdx) => {
+                            // Determine if this module is locked
+                            let isLocked = false;
+
+                            // Only apply locking logic for students who are enrolled
+                            if (userRole === 'student' && isEnrolled) {
+                                // Check all previous modules
+                                for (let i = 0; i < mIdx; i++) {
+                                    const prevModule = modules![i];
+                                    if (prevModule.isAssignmentBlocking) {
+                                        // If blocking, check if all assignments are completed
+                                        // Note: assignments in module might be objects or IDs depending on population
+                                        // Based on CourseDetail.tsx usage, they seem to be objects from population
+                                        const assignments = prevModule.assignments || [];
+                                        const allCompleted = assignments.every((a: any) =>
+                                            completedAssignmentIds.has(typeof a === 'string' ? a : a._id)
+                                        );
+
+                                        if (!allCompleted) {
+                                            isLocked = true;
+                                            break;
+                                        }
                                     }
-                                }}
-                                className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all cursor-pointer hover:border-blue-200"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                            <DocumentIcon className="h-6 w-6" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                {module.title}
-                                            </h3>
-                                            <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                                                {module.duration && (
+                                }
+                            }
+
+                            return (
+                                <div
+                                    key={module._id || mIdx}
+                                    onClick={() => {
+                                        if (!user) {
+                                            toast.error('Please login to view course content');
+                                            navigate('/login');
+                                            return;
+                                        }
+                                        if (!isLocked && module._id) {
+                                            navigate(`/courses/${courseId}/modules/${module._id}`);
+                                        }
+                                    }}
+                                    className={`group relative bg-white border rounded-xl p-6 transition-all ${isLocked
+                                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75'
+                                            : 'border-gray-200 hover:shadow-md cursor-pointer hover:border-blue-200'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-12 w-12 rounded-lg flex items-center justify-center transition-colors ${isLocked
+                                                    ? 'bg-gray-100 text-gray-400'
+                                                    : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                                                }`}>
+                                                {isLocked ? <LockClosedIcon className="h-6 w-6" /> : <DocumentIcon className="h-6 w-6" />}
+                                            </div>
+                                            <div>
+                                                <h3 className={`text-lg font-semibold transition-colors ${isLocked ? 'text-gray-500' : 'text-gray-900 group-hover:text-blue-600'
+                                                    }`}>
+                                                    {module.title}
+                                                </h3>
+                                                <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                                    {module.duration && (
+                                                        <span className="flex items-center">
+                                                            <ClockIcon className="w-3.5 h-3.5 mr-1" />
+                                                            {module.duration}
+                                                        </span>
+                                                    )}
                                                     <span className="flex items-center">
-                                                        <ClockIcon className="w-3.5 h-3.5 mr-1" />
-                                                        {module.duration}
+                                                        <BookOpenIcon className="w-3.5 h-3.5 mr-1" />
+                                                        {module.materials?.length || 0} materials
                                                     </span>
-                                                )}
-                                                <span className="flex items-center">
-                                                    <BookOpenIcon className="w-3.5 h-3.5 mr-1" />
-                                                    {module.materials?.length || 0} materials
-                                                </span>
+                                                    {(module.assignments?.length || 0) > 0 && (
+                                                        <span className="flex items-center">
+                                                            {isLocked ? 'Locked by previous assignments' : `${module.assignments?.length} assignments`}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex items-center text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all">
-                                        <span className="text-sm font-medium mr-2 hidden sm:block">View Content</span>
-                                        <ArrowRightIcon className="h-5 w-5" />
+                                        <div className={`flex items-center transition-all ${isLocked
+                                                ? 'text-gray-400'
+                                                : 'text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1'
+                                            }`}>
+                                            {isLocked ? (
+                                                <span className="text-sm font-medium flex items-center">
+                                                    Locked <LockClosedIcon className="h-4 w-4 ml-1" />
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    <span className="text-sm font-medium mr-2 hidden sm:block">View Content</span>
+                                                    <ArrowRightIcon className="h-5 w-5" />
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
@@ -188,10 +257,6 @@ const CourseContentViewer = ({
                     </div>
                 )}
             </div>
-
-            {/* Enrollment CTA */}
-
-
 
             {/* Material Preview Modal */}
             {
@@ -247,7 +312,7 @@ const CourseContentViewer = ({
                     </div>
                 )
             }
-        </div >
+        </div>
     );
 };
 

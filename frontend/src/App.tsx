@@ -56,11 +56,15 @@ function App() {
     }
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to="/" replace />; // Redirect to root (Dashboard)
     }
 
     return <>{children}</>;
   };
+
+  // Semi-Protected Route (Allows public access but handles auth if present)
+  // Actually, for the new public dashboard, we can just use the Layout directly
+  // and components check auth state internally.
 
   interface PublicRouteProps {
     children: React.ReactNode;
@@ -69,19 +73,22 @@ function App() {
   const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     // Prevent update loop: only redirect if not loading and user exists
     if (!loading && user) {
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to="/" replace />;
     }
     return <>{children}</>;
   };
 
   const getDashboard = () => {
-    switch (user?.role) {
+    if (!user) {
+      return <CourseList />; // Public view is Course List
+    }
+    switch (user.role) {
       case 'student':
         return <StudentDashboard />;
       case 'instructor':
         return <InstructorDashboard />;
       default:
-        return <Navigate to="/login" replace />;
+        return <CourseList />;
     }
   };
 
@@ -91,7 +98,13 @@ function App() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
+            <Route path="/home" element={<HomePage />} /> {/* Moved to /home */}
+            <Route path="/" element={ // Root is now Dashboard/CourseList (Publicly accessible)
+              <Layout>
+                {getDashboard()}
+              </Layout>
+            } />
+
             <Route path="/login" element={
               <PublicRoute>
                 <PublicLayout>
@@ -107,29 +120,17 @@ function App() {
               </PublicRoute>
             } />
 
-            {/* Protected Routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Layout>
-                  {getDashboard()}
-                </Layout>
-              </ProtectedRoute>
-            } />
 
             <Route path="/courses" element={
-              <ProtectedRoute>
-                <Layout>
-                  <CourseList />
-                </Layout>
-              </ProtectedRoute>
+              <Layout>
+                <CourseList />
+              </Layout>
             } />
 
             <Route path="/courses/:id" element={
-              <ProtectedRoute>
-                <Layout>
-                  <CourseDetail />
-                </Layout>
-              </ProtectedRoute>
+              <Layout>
+                <CourseDetail />
+              </Layout>
             } />
 
             <Route path="/courses/:id/materials" element={
@@ -149,11 +150,9 @@ function App() {
             } />
 
             <Route path="/courses/:id/modules/:moduleId" element={
-              <ProtectedRoute allowedRoles={['instructor', 'student']}>
-                <Layout>
-                  <ModulePreview />
-                </Layout>
-              </ProtectedRoute>
+              <Layout>
+                <ModulePreview />
+              </Layout>
             } />
 
 
@@ -256,10 +255,10 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Default Route */}
+            {/* Default Route
             <Route path="/" element={
               user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
-            } />
+            } /> */}
 
             {/* 404 Route */}
             <Route path="*" element={

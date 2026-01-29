@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -53,11 +55,25 @@ import type { Module } from '../../types';
 const ModulePreview = () => {
     const { id: courseId, moduleId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [module, setModule] = useState<Module | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [nextModuleId, setNextModuleId] = useState<string | null>(null);
     const [isLastModule, setIsLastModule] = useState(false);
+
+
+    // Auth Check
+    useEffect(() => {
+        if (!user) {
+            toast.error('Please login to view module content');
+            navigate('/login');
+        }
+    }, [user, navigate]);
+
+    // Assignment Logic
+    const [completedAssignmentIds, setCompletedAssignmentIds] = useState<string[]>([]);
+    const [allBlockingAssignmentsCompleted, setAllBlockingAssignmentsCompleted] = useState(false);
 
     useEffect(() => {
         const fetchModule = async () => {
@@ -80,6 +96,38 @@ const ModulePreview = () => {
                             setIsLastModule(true);
                         }
                     }
+
+                    // Check Assignment Status if exists
+                    if (foundModule.assignments && foundModule.assignments.length > 0 && user?.role === 'student') {
+                        try {
+                            const completedIds: string[] = [];
+                            await Promise.all(foundModule.assignments.map(async (assign: any) => {
+                                const assignId = typeof assign === 'object' ? assign._id : assign;
+                                try {
+                                    await axios.get(`/api/submissions/assignment/${assignId}/student/${user._id}`);
+                                    completedIds.push(assignId);
+                                } catch (err) {
+                                    // Not submitted or error
+                                }
+                            }));
+
+                            setCompletedAssignmentIds(completedIds);
+
+                            // Check if all are completed (if blocking is true, usually strict check)
+                            // Basically checks if every assignment in the module is in the completedIds list
+                            const allDone = foundModule.assignments.every((a: any) => {
+                                const aId = typeof a === 'object' ? a._id : a;
+                                return completedIds.includes(aId);
+                            });
+                            setAllBlockingAssignmentsCompleted(allDone);
+
+                        } catch (err) {
+                            console.error("Error in assignment check:", err);
+                        }
+                    } else {
+                        setAllBlockingAssignmentsCompleted(true); // No assignments = auto complete
+                    }
+
                 } else {
                     setError('Module not found');
                 }
@@ -91,12 +139,12 @@ const ModulePreview = () => {
             }
         };
 
-        if (courseId && moduleId) {
+        if (courseId && moduleId && user) {
             fetchModule();
         }
-    }, [courseId, moduleId]);
+    }, [courseId, moduleId, user]);
 
-    if (loading) return <LoadingSpinner />;
+    if (loading) return <LoadingSpinner />; // Or separate loading for assignment? Better global loading for now.
     if (error || !module) {
         return (
             <div className="max-w-4xl mx-auto px-4 py-8">
@@ -246,7 +294,69 @@ const ModulePreview = () => {
                 </div>
 
                 {/* Sidebar (Materials) */}
-                <div className="lg:col-span-1">
+
+                <div className="lg:col-span-1 space-y-6">
+                    {/* Assignments List */}
+                    {module.assignments && module.assignments.length > 0 && user && (
+                        <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-indigo-100 bg-indigo-50/50 flex justify-between items-center">
+                                <h2 className="text-lg font-semibold text-indigo-900 flex items-center gap-2">
+                                    <DocumentIcon className="w-5 h-5" />
+                                    Assignments
+                                </h2>
+                                {allBlockingAssignmentsCompleted ? (
+                                    <span className="flex items-center text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100 uppercase tracking-wide">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></div>
+                                        All Complete
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 uppercase tracking-wide">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></div>
+                                        Pending
+                                    </span>
+                                )}
+                            </div>
+                            <div className="p-4 space-y-3">
+                                {module.assignments.map((assign: any, idx) => {
+                                    const assignId = assign._id || assign;
+                                    const isCompleted = completedAssignmentIds.includes(assignId);
+
+                                    return (
+                                        <div key={idx} className="p-3 border border-gray-100 rounded-lg bg-gray-50/50">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-medium text-gray-900 text-sm">
+                                                    {assign.title || 'Assignment'}
+                                                </h3>
+                                                {isCompleted ? (
+                                                    <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded border border-green-100">Done</span>
+                                                ) : (
+                                                    <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-100">To Do</span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-500 mb-3">
+                                                Due: {assign.dueDate ? new Date(assign.dueDate).toLocaleDateString() : 'No Due Date'}
+                                            </p>
+                                            <button
+                                                onClick={() => navigate(`/assignments/${assignId}`)}
+                                                className={`w-full btn btn-sm ${isCompleted ? 'btn-secondary' : 'btn-primary'} text-xs justify-center`}
+                                            >
+                                                {isCompleted ? 'View Submission' : 'Start Assignment'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+
+                                <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500 text-center">
+                                    {(module as any).isAssignmentBlocking
+                                        ? "Complete all assignments to unlock the next module."
+                                        : "Assignments are recommended but not required."}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+
+
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-6">
                         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
                             <h2 className="text-lg font-semibold text-gray-900">Materials</h2>
@@ -296,10 +406,23 @@ const ModulePreview = () => {
                         {nextModuleId ? (
                             <button
                                 onClick={() => {
+                                    if (!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking) {
+                                        // Optional: Shake effect or toast explanation
+                                        return;
+                                    }
                                     navigate(`/courses/${courseId}/modules/${nextModuleId}`);
                                     window.scrollTo(0, 0);
                                 }}
-                                className="text-gray-500 hover:text-gray-900 flex items-center transition-colors text-sm font-medium"
+                                disabled={!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking}
+                                className={`flex items-center transition-colors text-sm font-medium ${!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                                title={
+                                    !allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
+                                        ? 'Complete all assignments to proceed'
+                                        : 'Next Module'
+                                }
                             >
                                 Next Module
                                 <ArrowRightIcon className="ml-2 h-4 w-4" aria-hidden="true" />

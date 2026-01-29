@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { 
+import {
   UserCircleIcon,
   KeyIcon,
   CameraIcon
@@ -10,7 +11,7 @@ import { formatDateISO } from '../../utils/dateUtils';
 import type { Address } from '../../types';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -53,12 +54,15 @@ const Profile = () => {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
-      // This would normally call an API to update profile
+      await axios.put('/api/auth/profile', profileForm);
+      await refreshUser();
       toast.success('Profile updated successfully!');
-    } catch (error) {
-      toast.error('Failed to update profile');
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      const message = error.response?.data?.message || 'Failed to update profile';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -66,24 +70,29 @@ const Profile = () => {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error('New passwords do not match');
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
-      // This would normally call an API to change password
+      await axios.put('/api/auth/change-password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
       toast.success('Password changed successfully!');
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
-    } catch (error) {
-      toast.error('Failed to change password');
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      const message = error.response?.data?.message || 'Failed to change password';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -105,9 +114,9 @@ const Profile = () => {
           <div className="relative">
             <div className="h-24 w-24 bg-gray-300 rounded-full flex items-center justify-center">
               {user?.profileImage ? (
-                <img 
-                  src={user.profileImage} 
-                  alt="Profile" 
+                <img
+                  src={user.profileImage}
+                  alt="Profile"
                   className="h-24 w-24 rounded-full object-cover"
                 />
               ) : (
@@ -118,7 +127,7 @@ const Profile = () => {
               <CameraIcon className="h-4 w-4" />
             </button>
           </div>
-          
+
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
               {user?.firstName} {user?.lastName}
@@ -135,21 +144,19 @@ const Profile = () => {
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'profile'
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               Profile Information
             </button>
             <button
               onClick={() => setActiveTab('password')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'password'
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'password'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               Change Password
             </button>

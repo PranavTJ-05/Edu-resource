@@ -85,6 +85,8 @@ export interface Module {
   description: string;
   duration?: string;
   markdownContent?: string;
+  assignments?: any[]; // assignments array
+  isAssignmentBlocking?: boolean; // New field
   materials: CourseMaterial[];
 }
 

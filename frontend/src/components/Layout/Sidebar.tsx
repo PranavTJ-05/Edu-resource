@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Dialog, Transition } from '@headlessui/react';
-import { 
+import {
   XMarkIcon,
   HomeIcon,
   BookOpenIcon,
@@ -35,10 +35,20 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
 
   const getNavigationItems = (): NavigationItem[] => {
     const commonItems: NavigationItem[] = [
-      { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+      { name: 'Dashboard', href: '/', icon: HomeIcon }, // Changed href to /
       { name: 'Courses', href: '/courses', icon: BookOpenIcon },
-      { name: 'Messages', href: '/messages', icon: ChatBubbleLeftIcon },
+      // { name: 'Messages', href: '/messages', icon: ChatBubbleLeftIcon }, // Moved to authenticated
     ];
+
+    if (!user) { // Guest View
+      return [
+        { name: 'Dashboard', href: '/', icon: HomeIcon },
+        { name: 'Courses', href: '/courses', icon: BookOpenIcon },
+      ];
+    }
+
+    // Add Messages for authenticated users
+    commonItems.push({ name: 'Messages', href: '/messages', icon: ChatBubbleLeftIcon });
 
     if (user?.role === 'student') {
       return [
@@ -70,20 +80,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         <BookOpenIcon className="h-8 w-8 text-white" />
         <span className="ml-2 text-xl font-semibold text-white">Edu-Resource</span>
       </div>
-      
+
       <div className="flex-1 flex flex-col overflow-y-auto">
         <nav className="flex-1 px-2 py-4 space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;
-            
+
             return (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`${
-                  isActive ? 'sidebar-link-active' : 'sidebar-link-inactive'
-                } flex items-center px-3 py-2 text-sm font-medium border-l-4 transition-colors duration-150`}
+                className={`${isActive ? 'sidebar-link-active' : 'sidebar-link-inactive'
+                  } flex items-center px-3 py-2 text-sm font-medium border-l-4 transition-colors duration-150`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <Icon className="mr-3 h-6 w-6" />
@@ -97,7 +106,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             );
           })}
         </nav>
-        
+
         <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
